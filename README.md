@@ -23,7 +23,7 @@ https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
 
   ```git clone https://github.com/<your-user-name>/poker-game-app.git```
 
-3. Make your changes to the code.
+3. Make your changes to the code. Feel free to create new branches if you would like but it is not necessary at this point.
 4. Commit your code with a thoughtful message.
 
   ```git commit -am 'Added the ability to shuffle cards'```
@@ -37,7 +37,7 @@ https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
 * Go to the [original repository](https://github.com/aparrett/poker-game-app) and click the "New Pull Request" button.
 * Follow the steps. 
 
-7. Once the code is reviewed, it will be merged into master.
+7. Once the code is reviewed, it will be merged into master on the original repository. 
 
 
 ## To-Do
