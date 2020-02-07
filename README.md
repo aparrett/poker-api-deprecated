@@ -2,6 +2,24 @@
 
 An app where you can play Texas Hold'em poker with your friends.
 
+## Project setup
+
+```
+npm install
+```
+
+### Compiles and minifies for production
+
+```
+npm run start
+```
+
+### Run your lint and tests
+
+```
+npm run test
+```
+
 ## Tech Stack
 
 -   Node.js
