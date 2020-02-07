@@ -1,6 +1,13 @@
 # poker-api
 
-An app where you can play Texas Hold'em poker with your friends.
+An app where you can play Texas Hold'em poker with your friends. Click [here](https://poker-friends.herokuapp.com/) to play.
+
+## Tech Stack
+
+-   Node.js
+-   Express
+-   MongoDB
+-   Jest
 
 ## Project setup
 
@@ -8,10 +15,10 @@ An app where you can play Texas Hold'em poker with your friends.
 npm install
 ```
 
-### Compiles and minifies for production
+### Run the server
 
 ```
-npm run start
+npm run dev
 ```
 
 ### Run your lint and tests
@@ -20,12 +27,35 @@ npm run start
 npm run test
 ```
 
-## Tech Stack
+### Local Database Setup
 
--   Node.js
--   Express
--   MongoDB
--   Jest
+These are the Mac instructions for setting up the database in your local. The Windows instructions for installing Mongo are to be added later but a quick Google search should do the trick.
+
+1. Install brew if you don't have it already (this takes a while)
+
+```
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+```
+
+2. Install and Run MongoDb
+
+```
+brew tap mongodb/brew
+brew install mongodb-community@4.2
+brew services start mongodb-community@4.2
+```
+
+3. Download the database GUI of your choice to view the data in a more user-friendly way. I recommend Robo 3T.
+   https://robomongo.org/download
+
+1. Create connection
+
+-   Use defaults
+
+2. Click Save
+3. Click Connect
+
+On the first run, there won't be anything in the database. Once you start adding things in the application, those collections will show up.
 
 ## How to Contribute
 

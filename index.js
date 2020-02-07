@@ -5,6 +5,7 @@ const app = express()
 app.use(express.json())
 app.use(compression())
 
+require('./src/db')()
 require('./src/routes')(app)
 
 const port = process.env.PORT || 8081
