@@ -1,0 +1,33 @@
+{
+    "name": "poker-api",
+    "version": "1.0.0",
+    "description": "An app where you can play Texas Hold'em poker with your friends.",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false",
+        "test": "eslint . && jest"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/aparrett/poker-api.git"
+    },
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/aparrett/poker-api/issues"
+    },
+    "homepage": "https://github.com/aparrett/poker-api#readme",
+    "dependencies": {
+        "compression": "^1.7.4",
+        "express": "^4.17.1"
+    },
+    "devDependencies": {
+        "babel-eslint": "^10.0.3",
+        "eslint": "^6.8.0",
+        "eslint-config-prettier": "^6.10.0",
+        "eslint-plugin-prettier": "^3.1.2",
+        "jest": "^25.1.0",
+        "prettier": "^1.19.1"
+    }
+}
