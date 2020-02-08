@@ -1,5 +1,5 @@
+const { createUser } = require('./controllers/userController')
+
 module.exports = function(app) {
-    app.get('/users/1', (req, res) => {
-        res.send({ firstName: 'Test', lastName: 'User' })
-    })
+    app.post('/users', createUser)
 }
