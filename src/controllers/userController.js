@@ -23,6 +23,33 @@ const createUser = async (req, res) => {
     res.send({ user: { name, username, id: user.id }, token })
 }
 
+const loginUser = async (req, res) => {
+    const user = await User.findOne({ username: req.body.username })
+    if (!user) {
+        return res.status(400).send('Invalid username or password.')
+    }
+
+    const validPassword = await bcrypt.compare(req.body.password, user.password)
+    if (!validPassword) {
+        return res.status(400).send('Invalid username or password.')
+    }
+
+    const token = user.generateAuthToken()
+    const { _id, name, username } = user
+    res.send({ token, user: { _id, name, username } })
+}
+
+const getUser = async (req, res) => {
+    const user = await User.findById(req.user._id).select('-password')
+    if (!user) {
+        return res.status(404).send('User not found.')
+    }
+
+    res.send({ user })
+}
+
 module.exports = {
-    createUser
+    createUser,
+    loginUser,
+    getUser
 }
