@@ -6,7 +6,8 @@
     "scripts": {
         "dev": "node index.js",
         "start": "node index.js",
-        "test": "eslint . && jest"
+        "test": "eslint . && jest",
+        "lint": "eslint ."
     },
     "repository": {
         "type": "git",

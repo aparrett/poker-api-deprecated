@@ -17,7 +17,13 @@ const getGame = async (req, res) => {
     }
 }
 
+const getGames = async (req, res) => {
+    const games = await Game.find()
+    res.send(games)
+}
+
 module.exports = {
     createGame,
-    getGame
+    getGame,
+    getGames
 }

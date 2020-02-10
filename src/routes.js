@@ -1,5 +1,5 @@
 const { createUser, loginUser, getUser } = require('./controllers/userController')
-const { createGame, getGame } = require('./controllers/gameController')
+const { createGame, getGame, getGames } = require('./controllers/gameController')
 const auth = require('./middleware/auth')
 
 module.exports = function(app) {
@@ -9,4 +9,5 @@ module.exports = function(app) {
 
     app.get('/games/:id', auth, getGame)
     app.post('/games', auth, createGame)
+    app.get('/games', getGames)
 }
