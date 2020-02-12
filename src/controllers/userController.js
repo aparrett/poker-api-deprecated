@@ -20,7 +20,7 @@ const createUser = async (req, res) => {
     user = await user.save()
 
     const token = user.generateAuthToken()
-    res.send({ user: { name, username, id: user.id }, token })
+    return res.send({ user: { name, username, id: user.id }, token })
 }
 
 const loginUser = async (req, res) => {
@@ -36,7 +36,7 @@ const loginUser = async (req, res) => {
 
     const token = user.generateAuthToken()
     const { _id, name, username } = user
-    res.send({ token, user: { _id, name, username } })
+    return res.send({ token, user: { _id, name, username } })
 }
 
 const getUser = async (req, res) => {
@@ -45,7 +45,7 @@ const getUser = async (req, res) => {
         return res.status(404).send('User not found.')
     }
 
-    res.send({ user })
+    return res.send({ user })
 }
 
 module.exports = {
