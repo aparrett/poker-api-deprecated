@@ -58,6 +58,9 @@ const joinTable = async (req, res) => {
 
     game.players.push(user)
     game = await game.save()
+
+    io.in(game._id).emit('gameUpdate', game)
+
     return res.send(game.players)
 }
 
