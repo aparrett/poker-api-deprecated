@@ -57,7 +57,7 @@ const joinTable = async (req, res) => {
     }
 
     if (game.players.length + 1 > game.maxPlayers) {
-        return res.status(400).send('The table has reached its maximum players count.')
+        return res.status(400).send('The table has reached max capacity.')
     }
 
     game.players.push(user)
@@ -68,9 +68,34 @@ const joinTable = async (req, res) => {
     return res.send(game.players)
 }
 
+const leaveTable = async (req, res) => {
+    const user = await User.findById(req.user._id).select('-password')
+    if (!user) {
+        return res.status(401).send('You must be logged in to leave a table.')
+    }
+
+    let game = await Game.findById(req.params.id)
+    if (!game) {
+        return res.status(404).send('Game not found.')
+    }
+
+    const index = game.players.findIndex(player => player._id.equals(user._id))
+    if (index === -1) {
+        return res.status(400).send('The requested user is not sitting at the table.')
+    }
+
+    game.players.splice(index, 1)
+    game = await game.save()
+
+    io.in(game._id).emit('gameUpdate', game)
+
+    return res.status(204).send()
+}
+
 module.exports = {
     createGame,
     getGame,
     getGames,
-    joinTable
+    joinTable,
+    leaveTable
 }
