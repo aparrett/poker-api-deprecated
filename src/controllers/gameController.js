@@ -56,6 +56,10 @@ const joinTable = async (req, res) => {
         return res.status(400).send('User is already sitting at the table.')
     }
 
+    if (game.players.length + 1 > game.maxPlayers) {
+        return res.status(400).send('The table has reached its maximum players count.')
+    }
+
     game.players.push(user)
     game = await game.save()
 
