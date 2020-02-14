@@ -84,10 +84,16 @@ const leaveTable = async (req, res) => {
         return res.status(400).send('The requested user is not sitting at the table.')
     }
 
-    game.players.splice(index, 1)
-    game = await game.save()
+    if (game.players.length === 1) {
+        await Game.deleteOne({ _id: req.params.id })
 
-    io.in(game._id).emit('gameUpdate', game)
+        // Any empty game object as the 2nd emit parameter informs the client that the game has been deleted.
+        io.in(game._id).emit('gameUpdate')
+    } else {
+        game.players.splice(index, 1)
+        game = await game.save()
+        io.in(game._id).emit('gameUpdate', game)
+    }
 
     return res.status(204).send()
 }

@@ -16,8 +16,9 @@ console.log(`Application started. Listening on port ${port}`)
 
 const io = require('socket.io').listen(server)
 global.io = io // allow sockets to be used in other files.
+
 io.on('connection', function(socket) {
-    socket.on('join', function(gameId) {
+    socket.on('joinGame', function(gameId) {
         socket.join(gameId)
     })
 })
