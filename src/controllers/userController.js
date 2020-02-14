@@ -20,7 +20,7 @@ const createUser = async (req, res) => {
     user = await user.save()
 
     const token = user.generateAuthToken()
-    return res.send({ user: { name, username, id: user.id }, token })
+    return res.send({ user: { name, username, _id: user.id }, token })
 }
 
 const loginUser = async (req, res) => {
