@@ -2,6 +2,7 @@ const express = require('express')
 const compression = require('compression')
 const cors = require('cors')
 const app = express()
+const { initIo } = require('./src/io')
 
 app.use(express.json())
 app.use(compression())
@@ -16,9 +17,4 @@ console.log(`Application started. Listening on port ${port}`)
 
 const io = require('socket.io').listen(server)
 global.io = io // allow sockets to be used in other files.
-
-io.on('connection', function(socket) {
-    socket.on('joinGame', function(gameId) {
-        socket.join(gameId)
-    })
-})
+initIo(io)

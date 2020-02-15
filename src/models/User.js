@@ -22,6 +22,10 @@ const userSchema = new mongoose.Schema({
         required: true,
         minlength: 5,
         maxlength: 1024
+    },
+    socketId: {
+        type: String,
+        required: false
     }
 })
 
@@ -51,5 +55,7 @@ function validate(user) {
     return Joi.validate(user, schema)
 }
 
-exports.User = User
-exports.validate = validate
+module.exports = {
+    User,
+    validate
+}

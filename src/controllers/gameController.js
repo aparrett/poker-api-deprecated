@@ -57,13 +57,27 @@ const joinTable = async (req, res) => {
     }
 
     if (game.players.length + 1 > game.maxPlayers) {
-        return res.status(400).send('The table has reached max capacity.')
+        return res.status(400).send('The table is already at max capacity.')
     }
 
+    user.socketId = req.body.socketId
     game.players.push(user)
+
     game = await game.save()
 
-    io.in(game._id).emit('gameUpdate', game)
+    const connectedSockets = Object.keys(io.in(game._id).sockets)
+    const playerSockets = game.players.map(player => player.socketId)
+
+    if (game.players.length === 2) {
+        connectedSockets.forEach(socketId => {
+            if (playerSockets.includes(socketId)) {
+                game.hand = ['AH', 'AC']
+                io.to(socketId).emit('gameUpdate', game)
+            } else {
+                io.to(socketId).emit('gameUpdate', game)
+            }
+        })
+    }
 
     return res.send(game.players)
 }

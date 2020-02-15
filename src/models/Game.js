@@ -13,6 +13,10 @@ const gameSchema = new mongoose.Schema({
     name: {
         type: String,
         required: false
+    },
+    hand: {
+        type: Array,
+        required: false
     }
 })
 
@@ -34,5 +38,11 @@ function validate(user) {
     return Joi.validate(user, schema)
 }
 
-exports.Game = Game
-exports.validate = validate
+gameSchema.methods.deal = function() {
+    console.log('dealing placeholder')
+}
+
+module.exports = {
+    Game,
+    validate
+}
