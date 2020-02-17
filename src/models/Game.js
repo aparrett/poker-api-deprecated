@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
 const Joi = require('joi')
+const { cards } = require('../constants')
 
 const gameSchema = new mongoose.Schema({
     players: {
@@ -20,8 +21,6 @@ const gameSchema = new mongoose.Schema({
     }
 })
 
-const Game = mongoose.model('Game', gameSchema)
-
 function validate(user) {
     const schema = {
         name: Joi.string()
@@ -38,9 +37,44 @@ function validate(user) {
     return Joi.validate(user, schema)
 }
 
-gameSchema.methods.deal = function() {
-    console.log('dealing placeholder')
+const chooseCard = usedCards => {
+    let card = cards[randomIndex()]
+    while (usedCards.includes(card)) {
+        card = cards[randomIndex()]
+    }
+    return card
 }
+
+const randomIndex = () => Math.ceil(Math.random() * 51)
+
+gameSchema.methods.deal = function() {
+    const connectedSockets = Object.keys(io.in(this._id).sockets)
+    const usedCards = []
+    connectedSockets.forEach(socketId => {
+        // Deal to connected players.
+        const playerIndex = this.players.findIndex(player => player.socketId === socketId)
+        if (playerIndex !== -1) {
+            const card1 = chooseCard(usedCards)
+            usedCards.push(card1)
+
+            const card2 = chooseCard(usedCards)
+            usedCards.push(card2)
+
+            this.hand = [card1, card2]
+
+            this.players[playerIndex].hand = [card1, card2]
+            io.to(socketId).emit('gameUpdate', this)
+        } else {
+            this.hand = undefined
+            io.to(socketId).emit('gameUpdate', this)
+        }
+    })
+
+    this.hand = undefined
+    return this
+}
+
+const Game = mongoose.model('Game', gameSchema)
 
 module.exports = {
     Game,

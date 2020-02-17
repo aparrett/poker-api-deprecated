@@ -27,7 +27,7 @@ const createGame = async (req, res) => {
 }
 
 const getGame = async (req, res) => {
-    const game = await Game.findById(req.params.id)
+    const game = await Game.findById(req.params.id).select('-players.hand')
     if (game) {
         return res.send(game)
     } else {
@@ -36,7 +36,7 @@ const getGame = async (req, res) => {
 }
 
 const getGames = async (req, res) => {
-    const games = await Game.find()
+    const games = await Game.find().select('-players.hand')
     return res.send(games)
 }
 
@@ -46,13 +46,13 @@ const joinTable = async (req, res) => {
         return res.status(401).send('You must be logged in to join a table.')
     }
 
-    let game = await Game.findById(req.params.id)
+    let game = await Game.findById(req.params.id).select('-players.hand')
     if (!game) {
         return res.status(404).send('Game not found.')
     }
 
     // Equals function is used to compare Mongoose ObjectIds.
-    if (game.players.find(player => player._id.equals(user._id))) {
+    if (game.players.find(player => player._id === user._id)) {
         return res.status(400).send('User is already sitting at the table.')
     }
 
@@ -63,23 +63,14 @@ const joinTable = async (req, res) => {
     user.socketId = req.body.socketId
     game.players.push(user)
 
-    game = await game.save()
-
-    const connectedSockets = Object.keys(io.in(game._id).sockets)
-    const playerSockets = game.players.map(player => player.socketId)
-
-    if (game.players.length === 2) {
-        connectedSockets.forEach(socketId => {
-            if (playerSockets.includes(socketId)) {
-                game.hand = ['AH', 'AC']
-                io.to(socketId).emit('gameUpdate', game)
-            } else {
-                io.to(socketId).emit('gameUpdate', game)
-            }
-        })
+    // The players' games are updated inside of deal.
+    if (game.players.length >= 2) {
+        game = game.deal()
     }
 
-    return res.send(game.players)
+    await game.save()
+
+    return res.status(200).send()
 }
 
 const leaveTable = async (req, res) => {
@@ -105,7 +96,13 @@ const leaveTable = async (req, res) => {
         io.in(game._id).emit('gameUpdate')
     } else {
         game.players.splice(index, 1)
+        // TODO: look for syntax similar to .select('-players.hand')
         game = await game.save()
+
+        // TODO: find better syntax for removing hands from the game
+        game.players.forEach((player, index) => {
+            game.players[index].hand = undefined
+        })
         io.in(game._id).emit('gameUpdate', game)
     }
 

@@ -26,6 +26,10 @@ const userSchema = new mongoose.Schema({
     socketId: {
         type: String,
         required: false
+    },
+    hand: {
+        type: Array,
+        required: false
     }
 })
 
