@@ -18,6 +18,10 @@ const gameSchema = new mongoose.Schema({
     hand: {
         type: Array,
         required: false
+    },
+    buyIn: {
+        type: Number,
+        required: true
     }
 })
 
@@ -31,7 +35,11 @@ function validate(user) {
             .min(0)
             .max(12)
             .required(),
-        players: Joi.array().required()
+        players: Joi.array().required(),
+        buyIn: Joi.number()
+            .integer()
+            .min(0)
+            .required()
     }
 
     return Joi.validate(user, schema)

@@ -7,14 +7,21 @@ const createGame = async (req, res) => {
         return res.status(401).send('You must be logged in to create a game.')
     }
 
-    const { name, maxPlayers } = req.body
+    const { name, maxPlayers, buyIn } = req.body
 
     const duplicateName = await Game.findOne({ name })
     if (duplicateName) {
         return res.status(400).send('The name of the game must be unique.')
     }
 
-    let game = { players: [user], name, maxPlayers: parseInt(maxPlayers) }
+    user.chips = buyIn
+
+    let game = {
+        players: [user],
+        name,
+        maxPlayers: parseInt(maxPlayers),
+        buyIn: parseInt(buyIn)
+    }
     const { error } = validate(game)
 
     if (error) {
@@ -61,6 +68,7 @@ const joinTable = async (req, res) => {
     }
 
     user.socketId = req.body.socketId
+    user.chips = game.buyIn
     game.players.push(user)
 
     // The players' games are updated inside of deal.

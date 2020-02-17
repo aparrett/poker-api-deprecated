@@ -30,6 +30,10 @@ const userSchema = new mongoose.Schema({
     hand: {
         type: Array,
         required: false
+    },
+    chips: {
+        type: Number,
+        required: false
     }
 })
 
