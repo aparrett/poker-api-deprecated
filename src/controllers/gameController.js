@@ -7,7 +7,7 @@ const createGame = async (req, res) => {
         return res.status(401).send('You must be logged in to create a game.')
     }
 
-    const { name, maxPlayers, buyIn } = req.body
+    const { name, maxPlayers, buyIn, bigBlind, smallBlind } = req.body
 
     const duplicateName = await Game.findOne({ name })
     if (duplicateName) {
@@ -20,12 +20,14 @@ const createGame = async (req, res) => {
         players: [user],
         name,
         maxPlayers: parseInt(maxPlayers),
-        buyIn: parseInt(buyIn)
+        buyIn: parseInt(buyIn),
+        bigBlind: parseInt(bigBlind),
+        smallBlind: parseInt(smallBlind)
     }
     const { error } = validate(game)
 
     if (error) {
-        return res.status(400).send(error)
+        return res.status(400).send(error.details[0].message)
     }
 
     game = new Game(game) // creates a Mongoose object to save.

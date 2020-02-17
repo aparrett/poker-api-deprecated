@@ -22,10 +22,18 @@ const gameSchema = new mongoose.Schema({
     buyIn: {
         type: Number,
         required: true
+    },
+    bigBlind: {
+        type: Number,
+        required: true
+    },
+    smallBlind: {
+        type: Number,
+        required: true
     }
 })
 
-function validate(user) {
+function validate(game) {
     const schema = {
         name: Joi.string()
             .min(5)
@@ -39,10 +47,19 @@ function validate(user) {
         buyIn: Joi.number()
             .integer()
             .min(0)
+            .required(),
+        bigBlind: Joi.number()
+            .integer()
+            .min(0)
+            .required(),
+        smallBlind: Joi.number()
+            .integer()
+            .min(0)
+            .max(game.bigBlind - 1)
             .required()
     }
 
-    return Joi.validate(user, schema)
+    return Joi.validate(game, schema)
 }
 
 const chooseCard = usedCards => {
