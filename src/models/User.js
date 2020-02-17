@@ -34,6 +34,10 @@ const userSchema = new mongoose.Schema({
     chips: {
         type: Number,
         required: false
+    },
+    isTurn: {
+        type: Boolean,
+        required: false
     }
 })
 
