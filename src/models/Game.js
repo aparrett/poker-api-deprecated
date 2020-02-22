@@ -99,13 +99,13 @@ gameSchema.methods.deal = function() {
 
     this.hand = undefined
 
-    // Set hands for backend calculation after sending game updates to prevent all
-    // hands being sent to all users.
+    // Save hands of each player for later server calculation like determining a hand winner.
+    // This happens after sending game updates to prevent all hands being sent to all users.
     hands.forEach((hand, i) => {
-        const player = game.players[i]
+        const player = this.players[i]
         if (player) {
             player.hand = hand
-            game.players.set(i, player)
+            this.players.set(i, player)
         }
     })
 
