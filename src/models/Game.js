@@ -75,8 +75,10 @@ const randomIndex = () => Math.ceil(Math.random() * 51)
 gameSchema.methods.deal = function() {
     const connectedSockets = Object.keys(io.in(this._id).sockets)
     const usedCards = []
+    const hands = []
+
+    // Deal to connected players.
     connectedSockets.forEach(socketId => {
-        // Deal to connected players.
         const playerIndex = this.players.findIndex(player => player.socketId === socketId)
         if (playerIndex !== -1) {
             const card1 = chooseCard(usedCards)
@@ -87,7 +89,7 @@ gameSchema.methods.deal = function() {
 
             this.hand = [card1, card2]
 
-            this.players[playerIndex].hand = [card1, card2]
+            hands[playerIndex] = [card1, card2]
             io.to(socketId).emit('gameUpdate', this)
         } else {
             this.hand = undefined
@@ -96,6 +98,17 @@ gameSchema.methods.deal = function() {
     })
 
     this.hand = undefined
+
+    // Set hands for backend calculation after sending game updates to prevent all
+    // hands being sent to all users.
+    hands.forEach((hand, i) => {
+        const player = game.players[i]
+        if (player) {
+            player.hand = hand
+            game.players.set(i, player)
+        }
+    })
+
     return this
 }
 
