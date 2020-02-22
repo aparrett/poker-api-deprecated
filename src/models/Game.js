@@ -19,7 +19,7 @@ const gameSchema = new mongoose.Schema({
         type: Array,
         required: false
     },
-    buyIn: {
+    maxBuyIn: {
         type: Number,
         required: true
     },
@@ -44,7 +44,7 @@ function validate(game) {
             .max(12)
             .required(),
         players: Joi.array().required(),
-        buyIn: Joi.number()
+        maxBuyIn: Joi.number()
             .integer()
             .min(0)
             .required(),

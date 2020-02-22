@@ -7,20 +7,20 @@ const createGame = async (req, res) => {
         return res.status(401).send('You must be logged in to create a game.')
     }
 
-    const { name, maxPlayers, buyIn, bigBlind, smallBlind } = req.body
+    const { name, maxPlayers, maxBuyIn, bigBlind, smallBlind } = req.body
 
     const duplicateName = await Game.findOne({ name })
     if (duplicateName) {
         return res.status(400).send('The name of the game must be unique.')
     }
 
-    user.chips = buyIn
+    user.chips = maxBuyIn
 
     let game = {
         players: [user],
         name,
         maxPlayers: parseInt(maxPlayers),
-        buyIn: parseInt(buyIn),
+        maxBuyIn: parseInt(maxBuyIn),
         bigBlind: parseInt(bigBlind),
         smallBlind: parseInt(smallBlind)
     }
@@ -69,8 +69,18 @@ const joinTable = async (req, res) => {
         return res.status(400).send('The table is already at max capacity.')
     }
 
-    user.socketId = req.body.socketId
-    user.chips = game.buyIn
+    const { buyIn, socketId } = req.body
+
+    if (buyIn > game.maxBuyIn) {
+        return res.status(400).send('The buy-in amount cannot be more than the max buy-in.')
+    }
+
+    if (buyIn <= game.bigBlind) {
+        return res.status(400).send('The buy-in amount must greater than the big blind.')
+    }
+
+    user.socketId = socketId
+    user.chips = buyIn
     user.isTurn = true
     game.players.push(user)
 
