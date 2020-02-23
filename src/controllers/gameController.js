@@ -81,7 +81,6 @@ const joinTable = async (req, res) => {
 
     user.socketId = socketId
     user.chips = buyIn
-    user.isTurn = true
     game.players.push(user)
 
     // The players' games are updated inside of deal.

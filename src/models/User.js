@@ -38,6 +38,18 @@ const userSchema = new mongoose.Schema({
     isTurn: {
         type: Boolean,
         required: false
+    },
+    isDealer: {
+        type: Boolean,
+        required: false
+    },
+    isBigBlind: {
+        type: Boolean,
+        required: false
+    },
+    isSmallBlind: {
+        type: Boolean,
+        required: false
     }
 })
 

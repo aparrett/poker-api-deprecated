@@ -79,6 +79,54 @@ gameSchema.methods.deal = function() {
     const usedCards = []
     const hands = []
 
+    // Move dealer chip and set blinds.
+    const dealerIndex = this.players.findIndex(player => player.isDealer)
+
+    const numPlayers = this.players.length
+    const nextDealerIndex = dealerIndex === -1 || dealerIndex === numPlayers - 1 ? 0 : dealerIndex + 1
+
+    this.players.forEach((player, index) => {
+        player.isTurn = false
+
+        if (index === nextDealerIndex) {
+            player.isDealer = true
+
+            if (numPlayers === 2) {
+                player.isSmallBlind = true
+                player.isBigBlind = false
+            }
+        } else {
+            player.isDealer = false
+
+            if (numPlayers === 2) {
+                player.isSmallBlind = false
+                player.isBigBlind = true
+            } else if ((nextDealerIndex === numPlayers - 1 && index === 0) || index === nextDealerIndex + 1) {
+                player.isSmallBlind = true
+                player.isBigBlind = false
+            } else if (
+                (nextDealerIndex === numPlayers - 2 && index === 0) ||
+                (nextDealerIndex === numPlayers - 1 && index === 1) ||
+                index === nextDealerIndex + 2
+            ) {
+                player.isSmallBlind = false
+                player.isBigBlind = true
+            } else {
+                player.isSmallBlind = false
+                player.isBigBlind = false
+            }
+        }
+
+        this.players.set(index, player)
+    })
+
+    // Set first to act.
+    const bigBlindIndex = this.players.findIndex(p => p.isBigBlind)
+    const firstToActIndex = bigBlindIndex === numPlayers - 1 ? 0 : bigBlindIndex + 1
+    const firstToAct = this.players[firstToActIndex]
+    firstToAct.isTurn = true
+    this.players.set(firstToActIndex, firstToAct)
+
     // Deal to connected players.
     connectedSockets.forEach(socketId => {
         const playerIndex = this.players.findIndex(player => player.socketId === socketId)
