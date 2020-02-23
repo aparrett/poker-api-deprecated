@@ -1,6 +1,8 @@
 const mongoose = require('mongoose')
 const Joi = require('joi')
 const { cards } = require('../constants')
+const { encryptionSalt } = require('../config')
+const CryptoJS = require('crypto-js')
 
 const gameSchema = new mongoose.Schema({
     players: {
@@ -89,8 +91,12 @@ gameSchema.methods.deal = function() {
 
             this.hand = [card1, card2]
 
-            hands[playerIndex] = [card1, card2]
             io.to(socketId).emit('gameUpdate', this)
+
+            hands[playerIndex] = [
+                CryptoJS.AES.encrypt(card1, encryptionSalt).toString(),
+                CryptoJS.AES.encrypt(card2, encryptionSalt).toString()
+            ]
         } else {
             this.hand = undefined
             io.to(socketId).emit('gameUpdate', this)

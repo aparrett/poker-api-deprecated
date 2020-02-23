@@ -1,4 +1,6 @@
 const { Game } = require('./models/Game')
+const CryptoJS = require('crypto-js')
+const { encryptionSalt } = require('./config')
 
 const initIo = io => {
     io.on('connection', function(socket) {
@@ -21,7 +23,11 @@ const initIo = io => {
                     await game.save()
 
                     // Send the user their hand.
-                    game.hand = player.hand
+                    game.hand = [
+                        CryptoJS.AES.decrypt(player.hand[0], encryptionSalt).toString(CryptoJS.enc.Utf8),
+                        CryptoJS.AES.decrypt(player.hand[1], encryptionSalt).toString(CryptoJS.enc.Utf8)
+                    ]
+
                     io.to(socket.id).emit('gameUpdate', game)
                 }
             }
