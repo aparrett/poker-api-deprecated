@@ -23,10 +23,12 @@ const initIo = io => {
                     await game.save()
 
                     // Send the user their hand.
-                    game.hand = [
-                        CryptoJS.AES.decrypt(player.hand[0], encryptionSalt).toString(CryptoJS.enc.Utf8),
-                        CryptoJS.AES.decrypt(player.hand[1], encryptionSalt).toString(CryptoJS.enc.Utf8)
-                    ]
+                    if (player.hand && player.hand.length > 0) {
+                        game.hand = [
+                            CryptoJS.AES.decrypt(player.hand[0], encryptionSalt).toString(CryptoJS.enc.Utf8),
+                            CryptoJS.AES.decrypt(player.hand[1], encryptionSalt).toString(CryptoJS.enc.Utf8)
+                        ]
+                    }
 
                     io.to(socket.id).emit('gameUpdate', game)
                 }

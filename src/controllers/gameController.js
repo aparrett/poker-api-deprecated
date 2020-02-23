@@ -116,6 +116,22 @@ const leaveTable = async (req, res) => {
         io.in(game._id).emit('gameUpdate')
     } else {
         game.players.splice(index, 1)
+
+        // If there's only one player remaining. Give them any bets and reset the player.
+        if (game.players.length === 1) {
+            const winner = game.players[0]
+            winner.chips = winner.chips + game.bets.map(b => b.amount).reduce((accumulator, bet) => accumulator + bet)
+            winner.hand = undefined
+            winner.isBigBlind = false
+            winner.isDealer = false
+            winner.isSmallBlind = false
+
+            game.players.set(0, winner)
+            game.bets = []
+
+            // TODO: Give the winner the pot
+        }
+
         // TODO: look for syntax similar to .select('-players.hand')
         game = await game.save()
 
