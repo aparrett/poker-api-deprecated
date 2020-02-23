@@ -32,6 +32,11 @@ const gameSchema = new mongoose.Schema({
     smallBlind: {
         type: Number,
         required: true
+    },
+    bets: {
+        type: Array,
+        required: true,
+        default: []
     }
 })
 
@@ -115,6 +120,19 @@ gameSchema.methods.deal = function() {
                 player.isSmallBlind = false
                 player.isBigBlind = false
             }
+        }
+
+        const blind = player.isBigBlind ? this.bigBlind : player.isSmallBlind ? this.smallBlind : 0
+        if (blind > 0) {
+            let betAmount = 0
+            if (player.chips < blind) {
+                betAmount = player.chips
+                player.chips = 0
+            } else {
+                betAmount = blind
+                player.chips -= blind
+            }
+            this.bets.push({ playerId: player._id, username: player.username, amount: betAmount })
         }
 
         this.players.set(index, player)
