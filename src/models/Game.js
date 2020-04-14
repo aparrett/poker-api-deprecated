@@ -37,6 +37,20 @@ const gameSchema = new mongoose.Schema({
         type: Array,
         required: true,
         default: []
+    },
+    lastToRaiseId: {
+        type: String,
+        required: false
+    },
+    pot: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    playersWaiting: {
+        type: Array,
+        required: true,
+        default: []
     }
 })
 
@@ -82,7 +96,6 @@ const randomIndex = () => Math.ceil(Math.random() * 51)
 gameSchema.methods.deal = function() {
     const connectedSockets = Object.keys(io.in(this._id).sockets)
     const usedCards = []
-    const hands = []
 
     // Move dealer chip and set blinds.
     const dealerIndex = this.players.findIndex(player => player.isDealer)
@@ -90,10 +103,10 @@ gameSchema.methods.deal = function() {
     const numPlayers = this.players.length
     const nextDealerIndex = dealerIndex === -1 || dealerIndex === numPlayers - 1 ? 0 : dealerIndex + 1
 
-    this.players.forEach((player, index) => {
+    this.players.forEach((player, playerIndex) => {
         player.isTurn = false
 
-        if (index === nextDealerIndex) {
+        if (playerIndex === nextDealerIndex) {
             player.isDealer = true
 
             if (numPlayers === 2) {
@@ -106,13 +119,16 @@ gameSchema.methods.deal = function() {
             if (numPlayers === 2) {
                 player.isSmallBlind = false
                 player.isBigBlind = true
-            } else if ((nextDealerIndex === numPlayers - 1 && index === 0) || index === nextDealerIndex + 1) {
+            } else if (
+                (nextDealerIndex === numPlayers - 1 && playerIndex === 0) ||
+                playerIndex === nextDealerIndex + 1
+            ) {
                 player.isSmallBlind = true
                 player.isBigBlind = false
             } else if (
-                (nextDealerIndex === numPlayers - 2 && index === 0) ||
-                (nextDealerIndex === numPlayers - 1 && index === 1) ||
-                index === nextDealerIndex + 2
+                (nextDealerIndex === numPlayers - 2 && playerIndex === 0) ||
+                (nextDealerIndex === numPlayers - 1 && playerIndex === 1) ||
+                playerIndex === nextDealerIndex + 2
             ) {
                 player.isSmallBlind = false
                 player.isBigBlind = true
@@ -133,9 +149,10 @@ gameSchema.methods.deal = function() {
                 player.chips -= blind
             }
             this.bets.push({ playerId: player._id, username: player.username, amount: betAmount })
+            this.pot += betAmount
         }
 
-        this.players.set(index, player)
+        this.players.set(playerIndex, player)
     })
 
     // Set first to act.
@@ -148,37 +165,24 @@ gameSchema.methods.deal = function() {
     // Deal to connected players.
     connectedSockets.forEach(socketId => {
         const playerIndex = this.players.findIndex(player => player.socketId === socketId)
-        if (playerIndex !== -1) {
-            const card1 = chooseCard(usedCards)
-            usedCards.push(card1)
+        const player = this.players[playerIndex]
 
-            const card2 = chooseCard(usedCards)
-            usedCards.push(card2)
-
-            this.hand = [card1, card2]
-
-            io.to(socketId).emit('gameUpdate', this)
-
-            hands[playerIndex] = [
-                CryptoJS.AES.encrypt(card1, encryptionSalt).toString(),
-                CryptoJS.AES.encrypt(card2, encryptionSalt).toString()
-            ]
-        } else {
-            this.hand = undefined
-            io.to(socketId).emit('gameUpdate', this)
+        if (!player) {
+            return
         }
-    })
 
-    this.hand = undefined
+        const card1 = chooseCard(usedCards)
+        usedCards.push(card1)
 
-    // Save hands of each player for later server calculation like determining a hand winner.
-    // This happens after sending game updates to prevent all hands being sent to all users.
-    hands.forEach((hand, i) => {
-        const player = this.players[i]
-        if (player) {
-            player.hand = hand
-            this.players.set(i, player)
-        }
+        const card2 = chooseCard(usedCards)
+        usedCards.push(card2)
+
+        player.hand = [
+            CryptoJS.AES.encrypt(card1, encryptionSalt).toString(),
+            CryptoJS.AES.encrypt(card2, encryptionSalt).toString()
+        ]
+
+        this.players.set(playerIndex, player)
     })
 
     return this

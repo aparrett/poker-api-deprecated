@@ -1,5 +1,6 @@
 const { Game, validate } = require('../models/Game')
 const { User } = require('../models/User')
+const { getLargestBet, updateAllUsers } = require('../service/gameService')
 
 const createGame = async (req, res) => {
     const user = await User.findById(req.user._id).select('-password')
@@ -55,17 +56,17 @@ const joinTable = async (req, res) => {
         return res.status(401).send('You must be logged in to join a table.')
     }
 
-    let game = await Game.findById(req.params.id).select('-players.hand')
+    let game = await Game.findById(req.params.id)
     if (!game) {
         return res.status(404).send('Game not found.')
     }
 
     // Equals function is used to compare Mongoose ObjectIds.
-    if (game.players.find(player => player._id === user._id)) {
+    if ([...game.players, ...game.playersWaiting].find(player => player._id === user._id)) {
         return res.status(400).send('User is already sitting at the table.')
     }
 
-    if (game.players.length + 1 > game.maxPlayers) {
+    if (game.players.length + game.playersWaiting.length === game.maxPlayers) {
         return res.status(400).send('The table is already at max capacity.')
     }
 
@@ -81,16 +82,22 @@ const joinTable = async (req, res) => {
 
     user.socketId = socketId
     user.chips = buyIn
-    game.players.push(user)
 
-    // The players' games are updated inside of deal.
-    if (game.players.length === 2) {
+    if (game.players.length === 1) {
+        game.players.push(user)
         game = game.deal()
+    } else {
+        game.playersWaiting.push(user)
     }
 
-    await game.save()
-
-    return res.status(200).send()
+    try {
+        game = await game.save()
+        updateAllUsers(game)
+        return res.status(200).send()
+    } catch (e) {
+        console.log(e)
+        return res.status(500).send('Something went wrong.')
+    }
 }
 
 const leaveTable = async (req, res) => {
@@ -130,19 +137,55 @@ const leaveTable = async (req, res) => {
             game.bets = []
 
             // TODO: Give the winner the pot
+            game.pot = 0
         }
 
-        // TODO: look for syntax similar to .select('-players.hand')
-        game = await game.save()
-
-        // TODO: find better syntax for removing hands from the game
-        game.players.forEach((player, index) => {
-            game.players[index].hand = undefined
-        })
-        io.in(game._id).emit('gameUpdate', game)
+        try {
+            game = await game.save()
+            updateAllUsers(game)
+            return res.status(200).send()
+        } catch (e) {
+            console.log(e)
+            return res.status(500).send('Something went wrong.')
+        }
     }
 
     return res.status(204).send()
+}
+
+const call = async (req, res) => {
+    const user = await User.findById(req.user._id).select('-password')
+    if (!user) {
+        return res.status(401).send('You must be logged in to act.')
+    }
+
+    const game = await Game.findById(req.params.id)
+    if (!game) {
+        return res.status(404).send('Game not found.')
+    }
+
+    if (user._id === game.lastToRaiseId) {
+        return res.status(400).send('Cannot call your own raise.')
+    }
+
+    const playerIndex = game.players.findIndex(player => player._id === user._id)
+    const player = game.players[playerIndex]
+    const largestBet = getLargestBet(game)
+
+    const bet = player.chips < largestBet ? player.chips : largestBet
+
+    player.chips -= bet
+    game.players.set(playerIndex, player)
+    game.pot += bet
+
+    try {
+        game = await game.save()
+        updateAllUsers(game)
+        return res.status(200).send()
+    } catch (e) {
+        console.log(e)
+        return res.status(500).send('Something went wrong.')
+    }
 }
 
 module.exports = {
@@ -150,5 +193,6 @@ module.exports = {
     getGame,
     getGames,
     joinTable,
-    leaveTable
+    leaveTable,
+    call
 }
