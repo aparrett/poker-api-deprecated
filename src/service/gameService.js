@@ -14,20 +14,28 @@ const updateAllUsers = game => {
     const connectedSockets = Object.keys(io.in(game._id).sockets)
 
     connectedSockets.forEach(socketId => {
-        game.hand = undefined
-
         const player = game.players.find(player => player.socketId === socketId)
 
+        let hand
         if (player) {
-            game.hand = decryptHand(player.hand)
+            hand = decryptHand(player.hand)
         }
 
-        io.to(socketId).emit('gameUpdate', { ...game, players: playersWithoutHands })
+        io.to(socketId).emit('gameUpdate', { ...game, players: playersWithoutHands, hand })
     })
+}
+
+const finishTurn = game => {
+    const currentPlayerIndex = game.players.findIndex(p => p.isTurn)
+    const nextPlayerIndex = (currentPlayerIndex + 1) % game.players.length
+    game.players.set(currentPlayerIndex, { ...game.players[currentPlayerIndex], isTurn: false })
+    game.players.set(nextPlayerIndex, { ...game.players[nextPlayerIndex], isTurn: true })
+    return game
 }
 
 module.exports = {
     decryptHand,
     getLargestBet,
-    updateAllUsers
+    updateAllUsers,
+    finishTurn
 }

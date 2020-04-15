@@ -1,6 +1,6 @@
 const { Game, validate } = require('../models/Game')
 const { User } = require('../models/User')
-const { getLargestBet, updateAllUsers } = require('../service/gameService')
+const { getLargestBet, updateAllUsers, finishTurn } = require('../service/gameService')
 
 const createGame = async (req, res) => {
     const user = await User.findById(req.user._id).select('-password')
@@ -154,32 +154,44 @@ const leaveTable = async (req, res) => {
 }
 
 const call = async (req, res) => {
-    const user = await User.findById(req.user._id).select('-password')
-    if (!user) {
-        return res.status(401).send('You must be logged in to act.')
-    }
-
-    const game = await Game.findById(req.params.id)
-    if (!game) {
-        return res.status(404).send('Game not found.')
-    }
-
-    if (user._id === game.lastToRaiseId) {
-        return res.status(400).send('Cannot call your own raise.')
-    }
-
-    const playerIndex = game.players.findIndex(player => player._id === user._id)
-    const player = game.players[playerIndex]
-    const largestBet = getLargestBet(game)
-
-    const bet = player.chips < largestBet ? player.chips : largestBet
-
-    player.chips -= bet
-    game.players.set(playerIndex, player)
-    game.pot += bet
-
     try {
+        const user = await User.findById(req.user._id).select('-password')
+        if (!user) {
+            return res.status(401).send('You must be logged in to act.')
+        }
+
+        let game = await Game.findById(req.params.id)
+        if (!game) {
+            return res.status(404).send('Game not found.')
+        }
+
+        if (user._id === game.lastToRaiseId) {
+            return res.status(400).send('Cannot call your own raise.')
+        }
+
+        const playerIndex = game.players.findIndex(player => player._id.equals(user._id))
+        const player = game.players[playerIndex]
+        const largestBet = getLargestBet(game)
+        const currentBetIndex = game.bets.findIndex(bet => bet.playerId.equals(user._id))
+        const currentBet = game.bets[currentBetIndex]
+        const amountToCall = currentBet ? largestBet - currentBet.amount : largestBet
+        const betAmount = player.chips < amountToCall ? player.chips : amountToCall
+
+        player.chips -= betAmount
+        game.players.set(playerIndex, player)
+
+        if (currentBet) {
+            currentBet.amount += betAmount
+            game.bets.set(currentBetIndex, currentBet)
+        } else {
+            game.bets.push({ playerId: player._id, username: player.username, amount: betAmount })
+        }
+
+        game.pot += betAmount
+
+        game = finishTurn(game)
         game = await game.save()
+
         updateAllUsers(game)
         return res.status(200).send()
     } catch (e) {
