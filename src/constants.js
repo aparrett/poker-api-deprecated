@@ -52,3 +52,10 @@ exports.cards = [
     '2C',
     '2H'
 ]
+
+exports.PREFLOP = 'PREFLOP'
+exports.FLOP = 'FLOP'
+exports.TURN = 'TURN'
+exports.RIVER = 'RIVER'
+
+exports.phases = [exports.PREFLOP, exports.FLOP, exports.TURN, exports.RIVER]

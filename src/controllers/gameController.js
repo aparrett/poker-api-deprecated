@@ -200,11 +200,48 @@ const call = async (req, res) => {
     }
 }
 
+const check = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).select('-password')
+        if (!user) {
+            return res.status(401).send('You must be logged in to act.')
+        }
+
+        let game = await Game.findById(req.params.id)
+        if (!game) {
+            return res.status(404).send('Game not found.')
+        }
+
+        const largestBet = getLargestBet(game)
+        const currentBetIndex = game.bets.findIndex(bet => bet.playerId.equals(user._id))
+        const currentBet = game.bets[currentBetIndex].amount
+
+        if (currentBet !== largestBet) {
+            return res.status(400).send('Cannot check when your bet does not equal the largest bet.')
+        }
+
+        const playerIndex = game.players.findIndex(player => player._id.equals(user._id))
+        const player = game.players[playerIndex]
+        player.hasActed = true
+        game.players.set(playerIndex, player)
+
+        game = finishTurn(game)
+        game = await game.save()
+
+        updateAllUsers(game)
+        return res.status(200).send()
+    } catch (e) {
+        console.log(e)
+        return res.status(500).send('Something went wrong.')
+    }
+}
+
 module.exports = {
     createGame,
     getGame,
     getGames,
     joinTable,
     leaveTable,
-    call
+    call,
+    check
 }

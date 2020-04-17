@@ -50,6 +50,10 @@ const userSchema = new mongoose.Schema({
     isSmallBlind: {
         type: Boolean,
         required: false
+    },
+    hasActed: {
+        type: Boolean,
+        required: false
     }
 })
 

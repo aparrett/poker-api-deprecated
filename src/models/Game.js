@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 const Joi = require('joi')
-const { cards } = require('../constants')
+const { cards, PREFLOP } = require('../constants')
 const { encryptionSalt } = require('../config')
 const CryptoJS = require('crypto-js')
 
@@ -51,6 +51,11 @@ const gameSchema = new mongoose.Schema({
         type: Array,
         required: true,
         default: []
+    },
+    phase: {
+        type: String,
+        required: true,
+        default: PREFLOP
     }
 })
 
