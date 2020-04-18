@@ -240,9 +240,9 @@ const check = async (req, res) => {
 
         const largestBet = getLargestBet(game)
         const currentBetIndex = game.bets.findIndex(bet => bet.playerId.equals(user._id))
-        const currentBet = game.bets[currentBetIndex].amount
+        const currentBet = game.bets[currentBetIndex]
 
-        if (currentBet !== largestBet) {
+        if (largestBet !== 0 && (!currentBet || currentBet.amount !== largestBet)) {
             return res.status(400).send('Cannot check when your bet does not equal the largest bet.')
         }
 
@@ -300,6 +300,65 @@ const fold = async (req, res) => {
     }
 }
 
+const raise = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).select('-password')
+        if (!user) {
+            return res.status(401).send('You must be logged in to act.')
+        }
+
+        let game = await Game.findById(req.params.id)
+        if (!game) {
+            return res.status(404).send('Game not found.')
+        }
+
+        const raiseAmount = Number(req.body.amount)
+        if (typeof raiseAmount !== 'number') {
+            return res.status(400).send('Raise must be a number.')
+        }
+
+        const playerIndex = game.players.findIndex(player => player._id.equals(user._id))
+        const player = game.players[playerIndex]
+
+        if (player._id === game.lastToRaiseId) {
+            return res.status(400).send('Cannot raise again when you were the last player to raise.')
+        }
+
+        const largestBet = getLargestBet(game)
+        const currentBetIndex = game.bets.findIndex(bet => bet.playerId.equals(user._id))
+        const currentBet = game.bets[currentBetIndex]
+        const amountToCall = currentBet ? largestBet - currentBet.amount : largestBet
+        const totalBet = amountToCall + raiseAmount
+
+        if (player.chips < totalBet) {
+            return res.status(400).send('Cannot raise more chips than what you have left.')
+        }
+
+        if (currentBet) {
+            currentBet.amount += totalBet
+            game.bets.set(currentBetIndex, currentBet)
+        } else {
+            game.bets.push({ playerId: player._id, username: player.username, amount: totalBet })
+        }
+
+        game.lastToRaiseId = player._id
+
+        player.chips -= totalBet
+        game.players.set(playerIndex, player)
+
+        game.pot += totalBet
+
+        game = finishTurn(game)
+        game = await game.save()
+
+        updateAllUsers(game)
+        return res.status(200).send()
+    } catch (e) {
+        console.log(e)
+        return res.status(500).send('Something went wrong.')
+    }
+}
+
 module.exports = {
     createGame,
     getGame,
@@ -308,5 +367,6 @@ module.exports = {
     leaveTable,
     call,
     check,
-    fold
+    fold,
+    raise
 }

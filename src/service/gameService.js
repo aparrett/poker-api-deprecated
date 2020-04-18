@@ -7,7 +7,12 @@ const decryptHand = hand => [
     CryptoJS.AES.decrypt(hand[1], encryptionSalt).toString(CryptoJS.enc.Utf8)
 ]
 
-const getLargestBet = game => Math.max(...game.bets.map(bet => bet.amount))
+const getLargestBet = game => {
+    if (game.bets.length === 0) {
+        return 0
+    }
+    return Math.max(...game.bets.map(bet => bet.amount))
+}
 
 const updateAllUsers = game => {
     game = game.toObject()
@@ -31,17 +36,23 @@ const finishTurn = game => {
     const currentPlayer = game.players[currentPlayerIndex]
 
     const largestBet = getLargestBet(game)
-
     const currentBetIndex = game.bets.findIndex(bet => bet.playerId.equals(currentPlayer._id))
-    const currentBet = game.bets[currentBetIndex].amount
+    const currentBet = game.bets[currentBetIndex]
 
-    if (game.phase === PREFLOP && currentPlayer.isBigBlind && currentBet === largestBet) {
+    if (
+        game.phase === PREFLOP &&
+        currentPlayer.isBigBlind &&
+        currentBet &&
+        currentBet.amount === largestBet &&
+        !currentPlayer._id.equals(game.lastToRaiseId)
+    ) {
         game = incrementPhase(game)
     } else {
-        const allPlayersHaveLargestBet = [...new Set(game.bets.map(bet => bet.amount))].length === 1
+        const allPlayersHaveLargestBet =
+            game.players.filter(p => p.hand).length === game.bets.filter(b => b.amount === largestBet).length
+        const allPlayerHaveActed = !game.players.find(p => p.hand && !p.hasActed)
 
-        const allPlayerHaveActedThatHaveHands = !game.players.find(p => p.hand && !p.hasActed)
-        if (allPlayersHaveLargestBet && (game.lastToRaiseId || allPlayerHaveActedThatHaveHands)) {
+        if ((game.lastToRaiseId && allPlayersHaveLargestBet) || (!game.lastToRaiseId && allPlayerHaveActed)) {
             game = incrementPhase(game)
         } else {
             game = incrementTurn(game)

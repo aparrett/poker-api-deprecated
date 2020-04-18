@@ -7,7 +7,8 @@ const {
     leaveTable,
     call,
     check,
-    fold
+    fold,
+    raise
 } = require('./controllers/gameController')
 const auth = require('./middleware/auth')
 
@@ -25,4 +26,5 @@ module.exports = function(app) {
     app.post('/games/:id/call', auth, call)
     app.post('/games/:id/check', auth, check)
     app.post('/games/:id/fold', auth, fold)
+    app.post('/games/:id/raise', auth, raise)
 }
