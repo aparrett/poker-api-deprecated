@@ -95,6 +95,8 @@ const incrementPhase = game => {
         }
     })
 
+    game.bets = []
+
     return game
 }
 
@@ -218,6 +220,15 @@ const deal = game => {
 }
 
 const startNextRound = game => {
+    game = resetGame(game)
+    game = setDealerChipAndBlinds(game)
+    game = setFirstToAct(game)
+    game = deal(game)
+
+    return game
+}
+
+const resetGame = game => {
     game.pot = 0
     game.lastToRaiseId = undefined
     game.bets = []
@@ -228,10 +239,6 @@ const startNextRound = game => {
         player.hand = undefined
         game.players.set(i, player)
     })
-
-    game = setDealerChipAndBlinds(game)
-    game = setFirstToAct(game)
-    game = deal(game)
 
     return game
 }

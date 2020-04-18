@@ -1,6 +1,13 @@
 const { Game, validate } = require('../models/Game')
 const { User } = require('../models/User')
-const { getLargestBet, updateAllUsers, finishTurn, finishRound, startNextRound } = require('../service/gameService')
+const {
+    getLargestBet,
+    updateAllUsers,
+    finishTurn,
+    finishRound,
+    startNextRound,
+    incrementTurn
+} = require('../service/gameService')
 
 const createGame = async (req, res) => {
     const user = await User.findById(req.user._id).select('-password')
@@ -61,7 +68,6 @@ const joinTable = async (req, res) => {
         return res.status(404).send('Game not found.')
     }
 
-    // Equals function is used to compare Mongoose ObjectIds.
     if ([...game.players, ...game.playersWaiting].find(player => player._id === user._id)) {
         return res.status(400).send('User is already sitting at the table.')
     }
@@ -120,15 +126,26 @@ const leaveTable = async (req, res) => {
     if (game.players.length === 1) {
         await Game.deleteOne({ _id: req.params.id })
 
-        // Any empty game object as the 2nd emit parameter informs the client that the game has been deleted.
+        // Any empty game object as the 2nd emit parameter informs clients that the game has been deleted.
         io.in(game._id).emit('gameUpdate')
     } else {
+        const player = game.players[index]
+
+        if (player.isTurn) {
+            game = incrementTurn(game)
+        }
+
         game.players.splice(index, 1)
+
+        const leaverBetIndex = game.bets.findIndex(bet => bet.playerId === player._id)
+        if (leaverBetIndex !== -1) {
+            game.bets.splice(leaverBetIndex, 1)
+        }
 
         // If there's only one player remaining. Give them any bets and reset the player.
         if (game.players.length === 1) {
             const winner = game.players[0]
-            winner.chips = winner.chips + game.bets.map(b => b.amount).reduce((accumulator, bet) => accumulator + bet)
+            winner.chips += game.pot
             winner.hand = undefined
             winner.isBigBlind = false
             winner.isDealer = false
@@ -136,9 +153,17 @@ const leaveTable = async (req, res) => {
 
             game.players.set(0, winner)
             game.bets = []
-
-            // TODO: Give the winner the pot
             game.pot = 0
+        } else {
+            if ([...new Set(game.bets.map(b => b.amount))].length > 0) {
+                let max = 0
+                game.bets.forEach(bet => {
+                    if (bet.amount > max) {
+                        game.lastToRaiseId = bet.playerId
+                        max = bet.amount
+                    }
+                })
+            }
         }
 
         try {

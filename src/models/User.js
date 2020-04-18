@@ -51,6 +51,7 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         required: false
     },
+    // Only applies to checks for now.
     hasActed: {
         type: Boolean,
         required: false
