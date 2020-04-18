@@ -54,6 +54,16 @@ const gameSchema = new mongoose.Schema({
         type: String,
         required: true,
         default: PREFLOP
+    },
+    usedCards: {
+        type: Array,
+        required: true,
+        default: []
+    },
+    communityCards: {
+        type: Array,
+        required: true,
+        default: []
     }
 })
 

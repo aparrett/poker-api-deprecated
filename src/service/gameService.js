@@ -1,11 +1,9 @@
 const CryptoJS = require('crypto-js')
 const { encryptionSalt } = require('../config')
-const { PREFLOP, phases, cards } = require('../constants')
+const { PREFLOP, FLOP, TURN, RIVER, phases, deck } = require('../constants')
 
-const decryptHand = hand => [
-    CryptoJS.AES.decrypt(hand[0], encryptionSalt).toString(CryptoJS.enc.Utf8),
-    CryptoJS.AES.decrypt(hand[1], encryptionSalt).toString(CryptoJS.enc.Utf8)
-]
+const decryptCard = card => CryptoJS.AES.decrypt(card, encryptionSalt).toString(CryptoJS.enc.Utf8)
+const decryptHand = hand => [decryptCard(hand[0]), decryptCard(hand[1])]
 
 const getLargestBet = game => {
     if (game.bets.length === 0) {
@@ -23,11 +21,11 @@ const updateAllUsers = game => {
         const player = game.players.find(player => player.socketId === socketId)
 
         let hand
-        if (player) {
+        if (player && player.hand && player.hand.length > 0) {
             hand = decryptHand(player.hand)
         }
 
-        io.to(socketId).emit('gameUpdate', { ...game, players: playersWithoutHands, hand })
+        io.to(socketId).emit('gameUpdate', { ...game, players: playersWithoutHands, hand, usedCards: [] })
     })
 }
 
@@ -83,6 +81,17 @@ const incrementPhase = game => {
     const nextPhaseIndex = (currentPhaseIndex + 1) % phases.length
 
     game.phase = phases[nextPhaseIndex]
+    if (game.phase === PREFLOP) {
+        game = finishRound(game)
+        return game
+    }
+
+    if (game.phase === FLOP) {
+        game.communityCards = [chooseCard(game.usedCards), chooseCard(game.usedCards), chooseCard(game.usedCards)]
+    } else if (game.phase === TURN || game.phase === RIVER) {
+        game.communityCards.push(chooseCard(game.usedCards))
+    }
+
     game.lastToRaiseId = undefined
 
     const dealerIndex = game.players.findIndex(p => p.isDealer)
@@ -199,30 +208,26 @@ const setFirstToAct = game => {
     return game
 }
 
-const chooseCard = usedCards => {
-    let card = cards[randomIndex()]
-    while (usedCards.includes(card)) {
-        card = cards[randomIndex()]
+const chooseCard = (usedCards, encrypted) => {
+    const decryptedUsedCards = usedCards.map(card => decryptCard(card))
+    let card = deck[randomIndex()]
+    while (decryptedUsedCards.includes(card)) {
+        card = deck[randomIndex()]
     }
-    return card
+    return encrypted ? CryptoJS.AES.encrypt(card, encryptionSalt).toString() : card
 }
 
 const randomIndex = () => Math.ceil(Math.random() * 51)
 
 const deal = game => {
-    const usedCards = []
-
     game.players.forEach((player, index) => {
-        const card1 = chooseCard(usedCards)
-        usedCards.push(card1)
+        const card1 = chooseCard(game.usedCards, true)
+        game.usedCards.push(card1)
 
-        const card2 = chooseCard(usedCards)
-        usedCards.push(card2)
+        const card2 = chooseCard(game.usedCards, true)
+        game.usedCards.push(card2)
 
-        player.hand = [
-            CryptoJS.AES.encrypt(card1, encryptionSalt).toString(),
-            CryptoJS.AES.encrypt(card2, encryptionSalt).toString()
-        ]
+        player.hand = [card1, card2]
 
         game.players.set(index, player)
     })
@@ -243,6 +248,8 @@ const resetGame = game => {
     game.pot = 0
     game.lastToRaiseId = undefined
     game.bets = []
+    game.usedCards = []
+    game.communityCards = []
 
     game.players.forEach((player, i) => {
         player.hasActed = false

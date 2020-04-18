@@ -1,4 +1,4 @@
-exports.cards = [
+exports.deck = [
     'AS',
     'AD',
     'AC',
