@@ -1,6 +1,6 @@
 const { Game, validate } = require('../models/Game')
 const { User } = require('../models/User')
-const { getLargestBet, updateAllUsers, finishTurn } = require('../service/gameService')
+const { getLargestBet, updateAllUsers, finishTurn, finishRound, startNextRound } = require('../service/gameService')
 
 const createGame = async (req, res) => {
     const user = await User.findById(req.user._id).select('-password')
@@ -85,13 +85,14 @@ const joinTable = async (req, res) => {
 
     if (game.players.length === 1) {
         game.players.push(user)
-        game = game.deal()
+        game = startNextRound(game)
     } else {
         game.playersWaiting.push(user)
     }
 
     try {
         game = await game.save()
+
         updateAllUsers(game)
         return res.status(200).send()
     } catch (e) {
@@ -236,6 +237,44 @@ const check = async (req, res) => {
     }
 }
 
+const fold = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).select('-password')
+        if (!user) {
+            return res.status(401).send('You must be logged in to act.')
+        }
+
+        let game = await Game.findById(req.params.id)
+        if (!game) {
+            return res.status(404).send('Game not found.')
+        }
+
+        const playerIndex = game.players.findIndex(player => player._id.equals(user._id))
+        const player = game.players[playerIndex]
+
+        if (!player.hand) {
+            return res.status(400).send('You cannot fold again.')
+        }
+
+        player.hand = undefined
+        game.players.set(playerIndex, player)
+
+        if (game.players.filter(player => player.hand).length === 1) {
+            game = finishRound(game)
+        } else {
+            game = finishTurn(game)
+        }
+
+        game = await game.save()
+
+        updateAllUsers(game)
+        return res.status(200).send()
+    } catch (e) {
+        console.log(e)
+        return res.status(500).send('Something went wrong.')
+    }
+}
+
 module.exports = {
     createGame,
     getGame,
@@ -243,5 +282,6 @@ module.exports = {
     joinTable,
     leaveTable,
     call,
-    check
+    check,
+    fold
 }
