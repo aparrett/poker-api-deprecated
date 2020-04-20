@@ -5,7 +5,7 @@ describe('winnerService', () => {
     describe('handStrengths', () => {
         it('should have proper values', () => {
             expect(strengthValues.AL).toEqual(0.001)
-            expect(strengthValues.TWO_PAIR).toEqual(1000000000000)
+            expect(strengthValues.TWO_PAIRS).toEqual(1000000000000)
             expect(strengthValues.ROYAL_FLUSH).toEqual(1000000000000000000)
         })
     })
@@ -31,7 +31,27 @@ describe('winnerService', () => {
 
         it('straight beats set', () => {})
 
-        it('set beats two pair', () => {})
+        it('set beats two pair', () => {
+            const hands = [
+                ['10C', '10S'],
+                ['KS', 'QC']
+            ]
+            const communityCards = ['10H', 'KH', 'QD', '8D', '6H']
+
+            const result = determineBetterHand(hands, communityCards)
+            expect(result).toEqual(['10C', '10S'])
+        })
+
+        it('higher set wins', () => {
+            const hands = [
+                ['10C', '10S'],
+                ['JS', 'JC']
+            ]
+            const communityCards = ['10H', 'JH', 'QD', '8D', '6H']
+
+            const result = determineBetterHand(hands, communityCards)
+            expect(result).toEqual(['JS', 'JC'])
+        })
 
         it('two pair beats one pair', () => {
             const hands = [

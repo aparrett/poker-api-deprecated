@@ -1,27 +1,80 @@
 const { strengthValues } = require('../constants')
 
 const determineBetterHand = (hands, communityCards) => {
-    if (hasTwoPair(hands[0], communityCards) || hasTwoPair(hands[1], communityCards)) {
-        return getTwoPairWinner(hands, communityCards)
+    const bestHand1 = getBestHand(hands[0], communityCards)
+    const bestHand2 = getBestHand(hands[1], communityCards)
+
+    if (!bestHand1 && !bestHand2) {
+        const hand = getHighestCardWinner(hands, communityCards)
+        return hand || false
     }
 
-    if (hasPair(hands[0], communityCards) || hasPair(hands[1], communityCards)) {
-        return getPairWinner(hands, communityCards)
+    if (bestHand1 === bestHand2) {
+        if (bestHand1 === 'SET') {
+            return getSetWinner(hands, communityCards)
+        }
+
+        if (bestHand1 === 'TWO_PAIRS') {
+            return getTwoPairWinner(hands, communityCards)
+        }
+
+        if (bestHand1 === 'PAIR') {
+            return getPairWinner(hands, communityCards)
+        }
     }
 
-    const hand = getHandWithHighestCard(hands, communityCards)
-    return hand || false
+    return strengthValues[bestHand1] > strengthValues[bestHand2] ? hands[0] : hands[1]
+}
+
+const getSetWinner = (hands, communityCards) => {
+    const hand1Set = getSet(hands[0], communityCards)
+    const hand2Set = getSet(hands[1], communityCards)
+
+    const setStrength1 = strengthValues[toNumberFace(hand1Set[0])]
+    const setStrength2 = strengthValues[toNumberFace(hand2Set[0])]
+
+    return setStrength1 > setStrength2 ? hands[0] : hands[1]
+}
+
+const getSet = (hand, communityCards) => {
+    const countsMap = {}
+    const cards = [...hand, ...communityCards].map(card => toNumberFace(card))
+    cards.forEach(card => {
+        if (countsMap[card]) {
+            countsMap[card] += 1
+        } else {
+            countsMap[card] = 1
+        }
+    })
+
+    const setCards = cards.filter(card => countsMap[card] === 3)
+    let maxNumberFace
+    setCards.forEach(card => {
+        if (!maxNumberFace || strengthValues[card] > strengthValues[maxNumberFace]) {
+            maxNumberFace = card
+        }
+    })
+
+    return [...hand, ...communityCards].filter(card => toNumberFace(card) === maxNumberFace)
+}
+
+const getTwoPairs = (hand, communityCards) => {
+    const cardMap = {}
+    let firstPair
+    for (const card of [...hand, ...communityCards]) {
+        const pairCard = cardMap[toNumberFace(card)]
+        if (pairCard) {
+            if (!firstPair) {
+                firstPair = [card, pairCard]
+            } else {
+                return [firstPair, [card, pairCard]]
+            }
+        }
+        cardMap[toNumberFace(card)] = card
+    }
 }
 
 const getTwoPairWinner = (hands, communityCards) => {
-    if (hasTwoPair(hands[0], communityCards) && !hasTwoPair(hands[1], communityCards)) {
-        return hands[0]
-    }
-
-    if (hasTwoPair(hands[1], communityCards) && !hasTwoPair(hands[0], communityCards)) {
-        return hands[1]
-    }
-
     const hand1Pairs = getTwoPairs(hands[0], communityCards)
     const hand2Pairs = getTwoPairs(hands[1], communityCards)
 
@@ -44,36 +97,18 @@ const getTwoPairWinner = (hands, communityCards) => {
     }
 }
 
-const getTwoPairs = (hand, communityCards) => {
+const getPair = (hand, communityCards) => {
     const cardMap = {}
-    let firstPair
     for (const card of [...hand, ...communityCards]) {
         const pairCard = cardMap[toNumberFace(card)]
         if (pairCard) {
-            if (!firstPair) {
-                firstPair = [card, pairCard]
-            } else {
-                return [firstPair, [card, pairCard]]
-            }
+            return [card, pairCard]
         }
         cardMap[toNumberFace(card)] = card
     }
 }
 
-const hasTwoPair = (hand, communityCards) => {
-    const cards = [...hand, ...communityCards].map(card => toNumberFace(card))
-    return new Set(cards).size === cards.length - 2
-}
-
 const getPairWinner = (hands, communityCards) => {
-    if (hasPair(hands[0], communityCards) && !hasPair(hands[1], communityCards)) {
-        return hands[0]
-    }
-
-    if (hasPair(hands[1], communityCards) && !hasPair(hands[0], communityCards)) {
-        return hands[1]
-    }
-
     const hand1Pair = getPair(hands[0], communityCards)
     const hand2Pair = getPair(hands[1], communityCards)
 
@@ -92,9 +127,35 @@ const getPairWinner = (hands, communityCards) => {
     }
 }
 
-const hasPair = (hand, communityCards) => {
+const getBestHand = (hand, communityCards) => {
+    const countsMap = {}
     const cards = [...hand, ...communityCards].map(card => toNumberFace(card))
-    return new Set(cards).size !== cards.length
+    cards.forEach(card => {
+        if (countsMap[card]) {
+            countsMap[card] += 1
+        } else {
+            countsMap[card] = 1
+        }
+    })
+
+    const counts = Object.values(countsMap)
+    if (counts.includes(4)) {
+        return 'QUADS'
+    }
+
+    if (counts.includes(3)) {
+        return 'SET'
+    }
+
+    if (counts.includes(2)) {
+        if (counts.filter(count => count === 2).length > 1) {
+            return 'TWO_PAIRS'
+        } else {
+            return 'PAIR'
+        }
+    }
+
+    return false
 }
 
 const getRestHandStrength = (hand, usedCards, communityCards) => {
@@ -102,18 +163,7 @@ const getRestHandStrength = (hand, usedCards, communityCards) => {
     return highCardStrength(rest)
 }
 
-const getPair = (hand, communityCards) => {
-    const cardMap = {}
-    for (const card of [...hand, ...communityCards]) {
-        const pairCard = cardMap[toNumberFace(card)]
-        if (pairCard) {
-            return [card, pairCard]
-        }
-        cardMap[toNumberFace(card)] = card
-    }
-}
-
-const getHandWithHighestCard = (hands, communityCards) => {
+const getHighestCardWinner = (hands, communityCards) => {
     const hand1strength = highCardStrength([...hands[0], ...communityCards])
     const hand2strength = highCardStrength([...hands[1], ...communityCards])
     if (hand1strength === hand2strength) {
@@ -134,6 +184,5 @@ const highCardStrength = cards => {
 const toNumberFace = card => card.slice(0, card.length - 1)
 
 module.exports = {
-    getHandWithHighestCard,
     determineBetterHand
 }

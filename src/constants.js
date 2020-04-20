@@ -76,7 +76,7 @@ exports.strengthTypes = [
     'K',
     'A',
     'PAIR',
-    'TWO_PAIR',
+    'TWO_PAIRS',
     'SET',
     'STRAIGHT',
     'FLUSH',
