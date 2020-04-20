@@ -127,6 +127,7 @@ const finishRound = game => {
         winner = remainingPlayers[0]
     } else {
         console.log('TODO: calculate winner. Choosing player 0 for now.')
+        console.log('TODO: consider grouping by best hands before comparing hand to hand.')
         // Save winnings to game so front-end can show who got which chips
         winner = remainingPlayers[0]
     }

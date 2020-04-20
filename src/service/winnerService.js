@@ -3,6 +3,12 @@ const { strengthValues } = require('../constants')
 const determineBetterHand = (hands, communityCards) => {
     const bestHand1 = getBestHand(hands[0], communityCards)
     const bestHand2 = getBestHand(hands[1], communityCards)
+    /**
+     *
+     * TODO: group by best hands before comparing hand to hand.
+     *
+     *
+     */
 
     if (!bestHand1 && !bestHand2) {
         const hand = getHighestCardWinner(hands, communityCards)
