@@ -59,3 +59,37 @@ exports.TURN = 'TURN'
 exports.RIVER = 'RIVER'
 
 exports.phases = [exports.PREFLOP, exports.FLOP, exports.TURN, exports.RIVER]
+
+exports.strengthTypes = [
+    'AL',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    '10',
+    'J',
+    'Q',
+    'K',
+    'A',
+    'PAIR',
+    'TWO_PAIR',
+    'SET',
+    'STRAIGHT',
+    'FLUSH',
+    'QUADS',
+    'STRAIGHT_FLUSH',
+    'ROYAL_FLUSH'
+]
+
+// Assigns strengths to each card and hand type to make it easier to compare hand strengths.
+// Strengths are in powers of ten so they'll never conflict.
+// Starts at 10 ^ -3 because 10 ^ -4 is unsafe.
+// ex output: { 'AL': 0.001, '2': 0.01, '3': 0.1 }
+const strengthValues = {}
+
+exports.strengthTypes.forEach((st, i) => (strengthValues[st] = Math.pow(10, i - 3)))
+exports.strengthValues = strengthValues
