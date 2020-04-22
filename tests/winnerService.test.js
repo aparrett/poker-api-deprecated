@@ -65,8 +65,6 @@ describe('winnerService', () => {
     describe('determineBetterHand', () => {
         it('should return false if it is a tie', () => {})
 
-        it('uses high card as tiebreaker', () => {})
-
         it('royal flush beats straight flush', () => {})
 
         it('straight flush beats quads', () => {})
@@ -75,7 +73,49 @@ describe('winnerService', () => {
 
         it('full house beats flush', () => {})
 
-        it('flush beats straight', () => {})
+        it('high flush wins last card high', () => {
+            const hands = [
+                ['2D', 'TS'],
+                ['3D', 'TH']
+            ]
+            const communityCards = ['6D', '8D', 'JD', 'TD', 'KH']
+
+            const result = determineBetterHand(hands, communityCards)
+            expect(result).toEqual(['3D', 'TH'])
+        })
+
+        it('higher flush wins - 5 cards', () => {
+            const hands = [
+                ['KD', '5D'],
+                ['9D', '6D']
+            ]
+            const communityCards = ['TS', '3D', 'JD', 'TD', '5H']
+
+            const result = determineBetterHand(hands, communityCards)
+            expect(result).toEqual(['KD', '5D'])
+        })
+
+        it('higher flush wins - 6 cards', () => {
+            const hands = [
+                ['KD', '5D'],
+                ['9D', '6D']
+            ]
+            const communityCards = ['TS', '3D', 'JD', 'TD', '2D']
+
+            const result = determineBetterHand(hands, communityCards)
+            expect(result).toEqual(['KD', '5D'])
+        })
+
+        it('flush beats straight', () => {
+            const hands = [
+                ['AC', '5S'],
+                ['2D', '7D']
+            ]
+            const communityCards = ['KH', 'QD', 'JD', 'TD', '5H']
+
+            const result = determineBetterHand(hands, communityCards)
+            expect(result).toEqual(['2D', '7D'])
+        })
 
         it('same straight should tie', () => {
             const hands = [

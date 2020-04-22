@@ -16,6 +16,10 @@ const determineBetterHand = (hands, communityCards) => {
     }
 
     if (bestHand1 === bestHand2) {
+        if (bestHand1 === 'FLUSH') {
+            return getFlushWinner(hands, communityCards)
+        }
+
         if (bestHand1 === 'STRAIGHT') {
             return getStraightWinner(hands, communityCards)
         }
@@ -34,6 +38,40 @@ const determineBetterHand = (hands, communityCards) => {
     }
 
     return strengthValues[bestHand1] > strengthValues[bestHand2] ? hands[0] : hands[1]
+}
+
+// Remember: There can be no ties with a flush because there can only be one suit with
+// a flush.
+const getFlushWinner = (hands, communityCards) => {
+    const flush1 = getFlush(hands[0], communityCards)
+    const flush2 = getFlush(hands[1], communityCards)
+    const hand1strength = highCardStrength(flush1)
+    const hand2strength = highCardStrength(flush2)
+    return hand1strength > hand2strength ? hands[0] : hands[1]
+}
+
+const getFlush = (hand, communityCards) => {
+    const countsMap = {}
+    const cards = [...hand, ...communityCards]
+    cards.forEach(card => {
+        if (countsMap[card[1]]) {
+            countsMap[card[1]] += 1
+        } else {
+            countsMap[card[1]] = 1
+        }
+    })
+
+    if (!Object.values(countsMap).includes(5)) {
+        return false
+    }
+
+    const suit = Object.keys(countsMap).find(suit => countsMap[suit] === 5)
+    return cards
+        .filter(card => card[1] === suit)
+        .sort((a, b) => {
+            return FACES.indexOf(a[0]) - FACES.indexOf(b[0])
+        })
+        .slice(0, 5)
 }
 
 const getStraightWinner = (hands, communityCards) => {
@@ -147,7 +185,7 @@ const hasStraight = faces => !!getStraight(faces)
 
 const getStraight = faces => {
     const facesCopy = [...new Set(faces)]
-    facesCopy.sort(function(a, b) {
+    facesCopy.sort((a, b) => {
         return FACES.indexOf(a) - FACES.indexOf(b)
     })
 
@@ -184,6 +222,10 @@ const getBestHand = (hand, communityCards) => {
     const counts = Object.values(countsMap)
     if (counts.includes(4)) {
         return 'QUADS'
+    }
+
+    if (getFlush(hand, communityCards)) {
+        return 'FLUSH'
     }
 
     if (hasStraight(faces)) {
