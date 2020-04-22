@@ -69,7 +69,19 @@ describe('winnerService', () => {
 
         it('straight flush beats quads', () => {})
 
+        it('higher quads wins', () => {})
+
         it('quads beats full house', () => {})
+
+        it('full house - higher trips', () => {
+
+        })
+
+        it('full house - same trips, higher ', () => {
+
+        })
+
+        it('full house beats two pair', () => {})
 
         it('full house beats flush', () => {})
 
@@ -181,6 +193,28 @@ describe('winnerService', () => {
 
             const result = determineBetterHand(hands, communityCards)
             expect(result).toEqual(['JS', 'JC'])
+        })
+
+        it('trips tied with kicker', () => {
+            const hands = [
+                ['TC', 'AS'],
+                ['TS', '9C']
+            ]
+            const communityCards = ['TH', 'TD', '3D', 'KD', '6H']
+
+            const result = determineBetterHand(hands, communityCards)
+            expect(result).toEqual(['TC', 'AS'])
+        })
+
+        it('trips tie', () => {
+            const hands = [
+                ['TC', '9S'],
+                ['TS', '9C']
+            ]
+            const communityCards = ['TH', 'TD', 'AD', 'KD', '6H']
+
+            const result = determineBetterHand(hands, communityCards)
+            expect(result).toEqual(false)
         })
 
         it('two pair beats one pair', () => {
