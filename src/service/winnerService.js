@@ -15,7 +15,31 @@ const determineBetterHand = (hands, communityCards) => {
         return hand || false
     }
 
+    if (bestHand1 && !bestHand2) {
+        return hands[0]
+    }
+
+    if (!bestHand1 && bestHand2) {
+        return hands[1]
+    }
+
     if (bestHand1 === bestHand2) {
+        if (bestHand1 === 'ROYAL_FLUSH') {
+            return false
+        }
+
+        if (bestHand1 === 'STRAIGHT_FLUSH') {
+            return getStraightFlushWinner(hands, communityCards)
+        }
+
+        if (bestHand1 === 'QUADS') {
+            return getQuadsWinner(hands, communityCards)
+        }
+
+        if (bestHand1 === 'FULL_HOUSE') {
+            return getFullHouseWinner(hands, communityCards)
+        }
+
         if (bestHand1 === 'FLUSH') {
             return getFlushWinner(hands, communityCards)
         }
@@ -40,17 +64,100 @@ const determineBetterHand = (hands, communityCards) => {
     return strengthValues[bestHand1] > strengthValues[bestHand2] ? hands[0] : hands[1]
 }
 
+const getQuadsWinner = (hands, communityCards) => {
+    const quads1 = getQuads(hands[0], communityCards)
+    const quads2 = getQuads(hands[1], communityCards)
+
+    const face1Strength = strengthValues[quads1[0][0]]
+    const face2Strength = strengthValues[quads2[0][0]]
+
+    if (face1Strength === face2Strength) {
+        return getHighestCardWinner(hands, communityCards)
+    }
+
+    return face1Strength > face2Strength ? hands[0] : hands[1]
+}
+
+const getQuads = (hand, communityCards) => {
+    const countsMap = {}
+    const cards = [...hand, ...communityCards]
+
+    cards.forEach(card => {
+        if (countsMap[card[0]]) {
+            countsMap[card[0]] += 1
+        } else {
+            countsMap[card[0]] = 1
+        }
+    })
+
+    const face = Object.keys(countsMap).find(face => countsMap[face] === 4)
+    return cards.filter(card => card[0] === face)
+}
+
+const getFullHouseWinner = (hands, communityCards) => {
+    const trips1 = getTrips(hands[0], communityCards)
+    const trips2 = getTrips(hands[1], communityCards)
+    const trips1Face = trips1[0][0]
+    const trips2Face = trips2[0][0]
+
+    if (trips1Face !== trips2Face) {
+        return strengthValues[trips1Face] > strengthValues[trips2Face] ? hands[0] : hands[1]
+    }
+
+    const hand1Unused = hands[0].filter(card => card[0] !== trips1Face)
+    const hand2Unused = hands[1].filter(card => card[0] !== trips1Face)
+    const communityUnused = communityCards.filter(card => card[0] !== trips1Face)
+
+    const hand1Pair = getHighestPair(hand1Unused, communityUnused)
+    const hand2Pair = getHighestPair(hand2Unused, communityUnused)
+
+    const pairStrength1 = strengthValues[hand1Pair[0][0]]
+    const pairStrength2 = strengthValues[hand2Pair[0][0]]
+
+    if (pairStrength1 === pairStrength2) {
+        return false
+    }
+
+    return pairStrength1 > pairStrength2 ? hands[0] : hands[1]
+}
+
 // Remember: There can be no ties with a flush because there can only be one suit with
 // a flush.
 const getFlushWinner = (hands, communityCards) => {
-    const flush1 = getFlush(hands[0], communityCards)
-    const flush2 = getFlush(hands[1], communityCards)
+    const flush1 = getHighestFlush(hands[0], communityCards)
+    const flush2 = getHighestFlush(hands[1], communityCards)
     const hand1strength = highCardStrength(flush1)
     const hand2strength = highCardStrength(flush2)
     return hand1strength > hand2strength ? hands[0] : hands[1]
 }
 
-const getFlush = (hand, communityCards) => {
+const getStraightFlush = (hand, communityCards) => {
+    const flushCards = getFlushCards(hand, communityCards)
+    if (!flushCards) {
+        return false
+    }
+
+    const straight = getStraight(flushCards.map(card => card[0]))
+    if (!straight) {
+        return false
+    }
+
+    return flushCards.filter(card => straight.includes(card[0]))
+}
+
+const getStraightFlushWinner = (hands, communityCards) => {
+    const sf1 = getStraightFlush(hands[0], communityCards)
+    const sf2 = getStraightFlush(hands[1], communityCards)
+
+    // Unnecessary to check suit as there can only be one flush suit.
+    if (sf1[0][0] === sf2[0][0]) {
+        return false
+    }
+
+    return strengthValues[sf1[0][0]] > strengthValues[sf2[0][0]] ? hands[0] : hands[1]
+}
+
+const getFlushCards = (hand, communityCards) => {
     const countsMap = {}
     const cards = [...hand, ...communityCards]
     cards.forEach(card => {
@@ -61,17 +168,27 @@ const getFlush = (hand, communityCards) => {
         }
     })
 
-    if (!Object.values(countsMap).includes(5)) {
+    const counts = Object.values(countsMap)
+    if (!counts.includes(5) && !counts.includes(6) && !counts.includes(7)) {
         return false
     }
 
-    const suit = Object.keys(countsMap).find(suit => countsMap[suit] === 5)
+    const suit = Object.keys(countsMap).find(suit => countsMap[suit] >= 5)
+
     return cards
         .filter(card => card[1] === suit)
         .sort((a, b) => {
             return FACES.indexOf(a[0]) - FACES.indexOf(b[0])
         })
-        .slice(0, 5)
+}
+
+const getHighestFlush = (hand, communityCards) => {
+    const flushCards = getFlushCards(hand, communityCards)
+    if (!flushCards) {
+        return false
+    }
+
+    return flushCards.slice(0, 5)
 }
 
 const getStraightWinner = (hands, communityCards) => {
@@ -89,6 +206,15 @@ const getTripsWinner = (hands, communityCards) => {
 
     const setStrength1 = strengthValues[hand1Trips[0][0]]
     const setStrength2 = strengthValues[hand2Trips[0][0]]
+
+    if (setStrength1 === setStrength2) {
+        const restHandStrength1 = getRestHandStrength(hands[0], hand1Trips, communityCards)
+        const restHandStrength2 = getRestHandStrength(hands[1], hand2Trips, communityCards)
+        if (restHandStrength1 === restHandStrength2) {
+            return false
+        }
+        return restHandStrength1 > restHandStrength2 ? hands[0] : hands[1]
+    }
 
     return setStrength1 > setStrength2 ? hands[0] : hands[1]
 }
@@ -151,20 +277,40 @@ const getTwoPairWinner = (hands, communityCards) => {
     }
 }
 
-const getPair = (hand, communityCards) => {
-    const cardMap = {}
-    for (const card of [...hand, ...communityCards]) {
-        const pairCard = cardMap[card[0]]
-        if (pairCard) {
-            return [card, pairCard]
+const getHighestPair = (hand, communityCards) => {
+    const countsMap = {}
+    const cards = [...hand, ...communityCards]
+    const faces = cards.map(card => card[0])
+    faces.forEach(face => {
+        if (countsMap[face]) {
+            countsMap[face] += 1
+        } else {
+            countsMap[face] = 1
         }
-        cardMap[card[0]] = card
+    })
+
+    const counts = Object.values(countsMap)
+
+    const onlyOnePair = counts.filter(count => count === 2).length === 1
+    if (onlyOnePair) {
+        const face = Object.keys(countsMap).find(face => countsMap[face] === 2)
+        return cards.filter(card => card[0] === face)
     }
+
+    let maxPair
+    const pairFaces = Object.keys(countsMap).filter(face => countsMap[face] === 2)
+    pairFaces.forEach(face => {
+        if (!maxPair || strengthValues[face] > strengthValues[maxPair[0][0]]) {
+            maxPair = cards.filter(card => card[0] === face)
+        }
+    })
+
+    return maxPair
 }
 
 const getPairWinner = (hands, communityCards) => {
-    const hand1Pair = getPair(hands[0], communityCards)
-    const hand2Pair = getPair(hands[1], communityCards)
+    const hand1Pair = getHighestPair(hands[0], communityCards)
+    const hand2Pair = getHighestPair(hands[1], communityCards)
 
     const pairStrength1 = strengthValues[hand1Pair[0][0]]
     const pairStrength2 = strengthValues[hand2Pair[0][0]]
@@ -219,12 +365,26 @@ const getBestHand = (hand, communityCards) => {
         }
     })
 
+    const straightFlush = getStraightFlush(hand, communityCards)
+    if (straightFlush) {
+        if (straightFlush[0][0] === 'A') {
+            return 'ROYAL_FLUSH'
+        } else {
+            return 'STRAIGHT_FLUSH'
+        }
+    }
+
     const counts = Object.values(countsMap)
     if (counts.includes(4)) {
         return 'QUADS'
     }
 
-    if (getFlush(hand, communityCards)) {
+    const hasTwoTrips = counts.filter(count => count === 3).length === 2
+    if (hasTwoTrips || (counts.includes(2) && counts.includes(3))) {
+        return 'FULL_HOUSE'
+    }
+
+    if (getFlushCards(hand, communityCards)) {
         return 'FLUSH'
     }
 

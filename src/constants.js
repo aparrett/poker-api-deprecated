@@ -36,6 +36,7 @@ exports.strengthTypes = [
     'TRIPS',
     'STRAIGHT',
     'FLUSH',
+    'FULL_HOUSE',
     'QUADS',
     'STRAIGHT_FLUSH',
     'ROYAL_FLUSH'
