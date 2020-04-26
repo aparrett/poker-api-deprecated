@@ -1,7 +1,9 @@
 const CryptoJS = require('crypto-js')
 const { encryptionSalt } = require('../config')
 const { PREFLOP, FLOP, TURN, RIVER, phases, deck } = require('../constants')
+const { distributeChipsToWinners } = require('./winnerService')
 
+const encryptCard = card => CryptoJS.AES.encrypt(card, encryptionSalt).toString()
 const decryptCard = card => CryptoJS.AES.decrypt(card, encryptionSalt).toString(CryptoJS.enc.Utf8)
 const decryptHand = hand => [decryptCard(hand[0]), decryptCard(hand[1])]
 
@@ -87,9 +89,15 @@ const incrementPhase = game => {
     }
 
     if (game.phase === FLOP) {
-        game.communityCards = [chooseCard(game.usedCards), chooseCard(game.usedCards), chooseCard(game.usedCards)]
+        const flop = [chooseCard(game.usedCards), chooseCard(game.usedCards), chooseCard(game.usedCards)]
+        flop.forEach(card => {
+            game.communityCards.push(card)
+            game.usedCards.push(encryptCard(card))
+        })
     } else if (game.phase === TURN || game.phase === RIVER) {
-        game.communityCards.push(chooseCard(game.usedCards))
+        const card = chooseCard(game.usedCards)
+        game.communityCards.push(card)
+        game.usedCards.push(encryptCard(card))
     }
 
     game.lastToRaiseId = undefined
@@ -121,21 +129,7 @@ const incrementPhase = game => {
 }
 
 const finishRound = game => {
-    const remainingPlayers = game.players.filter(player => player.hand)
-    let winner
-    if (remainingPlayers.length === 1) {
-        winner = remainingPlayers[0]
-    } else {
-        console.log('TODO: calculate winner. Choosing player 0 for now.')
-        console.log('TODO: consider grouping by best hands before comparing hand to hand.')
-        // Save winnings to game so front-end can show who got which chips
-        winner = remainingPlayers[0]
-    }
-
-    const winnerIndex = game.players.findIndex(player => player._id === winner._id)
-    winner.chips += game.pot
-    game.players.set(winnerIndex, winner)
-
+    game = distributeChipsToWinners(game)
     game = startNextRound(game)
     return game
 }
@@ -216,7 +210,7 @@ const chooseCard = (usedCards, encrypted) => {
     while (decryptedUsedCards.includes(card)) {
         card = deck[randomIndex()]
     }
-    return encrypted ? CryptoJS.AES.encrypt(card, encryptionSalt).toString() : card
+    return encrypted ? encryptCard(card) : card
 }
 
 const randomIndex = () => Math.ceil(Math.random() * 51)

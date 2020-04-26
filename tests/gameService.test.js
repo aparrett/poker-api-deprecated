@@ -1,8 +1,13 @@
 const { incrementTurn, incrementPhase } = require('../src/service/gameService')
 const { PREFLOP, FLOP, RIVER } = require('../src/constants')
 
+const winnerService = require('../src/service/winnerService')
+jest.mock('../src/service/winnerService')
+
+winnerService.distributeChipsToWinners.mockImplementation(game => game)
+
 describe('gameService', () => {
-    const game = { players: [], usedCards: [] }
+    const game = { players: [], usedCards: [], communityCards: [] }
     game.players.set = (index, player) => (game.players[index] = player)
 
     beforeEach(() => {

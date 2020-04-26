@@ -1,4 +1,9 @@
-const { determineBetterHand, hasStraight } = require('../src/service/winnerService')
+const {
+    determineBetterHand,
+    hasStraight,
+    groupAndSortHandsByHandTypeStrength,
+    getWinningOrder
+} = require('../src/service/winnerService')
 
 // Used to verify the same result given the hands in opposite order.
 const reverseOrder = hands => [hands[1], hands[0]]
@@ -517,6 +522,264 @@ describe('winnerService', () => {
 
             expect(determineBetterHand(hands, communityCards)).toEqual(false)
             expect(determineBetterHand(reverseOrder(hands), communityCards)).toEqual(false)
+        })
+    })
+
+    describe('groupAndSortHandsByHandTypeStrength', () => {
+        it('should group and sort hands by hand type strength', () => {
+            const hands = [
+                ['JD', 'JS'], // trips
+                ['AS', 'KS'], // straight
+                ['AC', 'JH'], // pair
+                ['TC', 'QC'], // two pair
+                ['9C', '3H'], // straight
+                ['5D', '8C'] // two pair
+            ]
+
+            const communityCards = ['TD', 'QH', 'JC', '8S', '5H']
+
+            const expected = [
+                [
+                    ['AS', 'KS'],
+                    ['9C', '3H']
+                ],
+                [['JD', 'JS']],
+                [
+                    ['TC', 'QC'],
+                    ['5D', '8C']
+                ],
+                [['AC', 'JH']]
+            ]
+            expect(groupAndSortHandsByHandTypeStrength(hands, communityCards)).toEqual(expected)
+        })
+
+        it('should sort correctly with HIGH_CARD type', () => {
+            const hands = [
+                ['JD', 'JS'],
+                ['AD', '2D']
+            ]
+
+            const communityCards = ['TD', 'QH', 'JC', '8S', '5H']
+
+            const expected = [[['JD', 'JS']], [['AD', '2D']]]
+
+            expect(groupAndSortHandsByHandTypeStrength(hands, communityCards)).toEqual(expected)
+            expect(groupAndSortHandsByHandTypeStrength(reverseOrder(hands), communityCards)).toEqual(expected)
+        })
+
+        it('should sort correctly with HIGH_CARD type against multiple', () => {
+            const hands = [
+                ['TC', 'TH'],
+                ['AD', '2D'],
+                ['JD', 'JS']
+            ]
+
+            const communityCards = ['TD', 'QH', 'JC', '8S', '5H']
+
+            const expected = [
+                [
+                    ['TC', 'TH'],
+                    ['JD', 'JS']
+                ],
+                [['AD', '2D']]
+            ]
+
+            expect(groupAndSortHandsByHandTypeStrength(hands, communityCards)).toEqual(expected)
+        })
+    })
+
+    describe('getWinningOrder', () => {
+        it('should return the appropriate winning order - 1', () => {
+            const hands = [
+                ['KD', 'KC'], // two pair
+                ['AD', 'AC'], // two pair
+                ['QD', 'QC'] // two pair
+            ]
+
+            const communityCards = ['5D', '5C', 'JC', '8S', '2H']
+
+            const expected = [
+                ['AD', 'AC'], // two pair
+                ['KD', 'KC'], // two pair
+                ['QD', 'QC'] // two pair
+            ]
+            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+        })
+
+        it('should return the appropriate winning order - 2', () => {
+            const hands = [
+                ['JD', 'JS'], // trips
+                ['AS', 'KS'], // straight
+                ['AC', 'JH'], // pair
+                ['TC', 'QC'], // two pair
+                ['9C', '3H'], // straight
+                ['5D', '8C'] // two pair
+            ]
+
+            const communityCards = ['TD', 'QH', 'JC', '8S', '5H']
+
+            const expected = [
+                ['AS', 'KS'],
+                ['9C', '3H'],
+                ['JD', 'JS'],
+                ['TC', 'QC'],
+                ['5D', '8C'],
+                ['AC', 'JH']
+            ]
+            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+        })
+
+        it('should return the appropriate winning order - 3', () => {
+            const hands = [
+                ['KD', 'KC'], // two pair
+                ['AD', 'AC'], // two pair
+                ['KH', 'KS'] // two pair
+            ]
+
+            const communityCards = ['5D', '5C', 'JC', '8S', '2H']
+
+            const expected = [
+                ['AD', 'AC'],
+                [
+                    ['KD', 'KC'],
+                    ['KH', 'KS']
+                ]
+            ]
+            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+        })
+
+        it('should return the appropriate winning order - 4', () => {
+            const hands = [
+                ['5S', '6C'], // trips
+                ['KD', 'KC'], // two pair
+                ['AD', 'AC'], // two pair
+                ['KH', 'KS'], // two pair
+                ['2C', '3S'] // one pair
+            ]
+
+            const communityCards = ['5D', '5C', 'JC', '8S', '2H']
+
+            const expected = [
+                ['5S', '6C'],
+                ['AD', 'AC'],
+                [
+                    ['KD', 'KC'],
+                    ['KH', 'KS']
+                ],
+                ['2C', '3S']
+            ]
+            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+        })
+
+        it('should return the appropriate winning order - 5', () => {
+            const hands = [
+                ['AS', 'AH'],
+                ['KD', 'KC'],
+                ['AD', 'AC'],
+                ['KH', 'KS'],
+                ['2C', '3S']
+            ]
+
+            const communityCards = ['TD', '9C', 'JC', '8S', '7H'] // straight
+
+            const expected = [
+                [
+                    ['AS', 'AH'],
+                    ['KD', 'KC'],
+                    ['AD', 'AC'],
+                    ['KH', 'KS'],
+                    ['2C', '3S']
+                ]
+            ]
+            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+        })
+
+        it('should return the appropriate winning order - 5', () => {
+            const hands = [
+                ['AS', 'AH'],
+                ['KD', 'KC'],
+                ['QC', 'QS'], // higher straight
+                ['AD', 'AC'],
+                ['KH', 'KS']
+            ]
+
+            const communityCards = ['TD', '9C', 'JC', '8S', '7H'] // straight
+
+            const expected = [
+                ['QC', 'QS'],
+                [
+                    ['AS', 'AH'],
+                    ['KD', 'KC'],
+                    ['AD', 'AC'],
+                    ['KH', 'KS']
+                ]
+            ]
+            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+        })
+
+        it('should return the appropriate winning order - 6', () => {
+            const hands = [
+                ['QC', '2H'], // high card
+                ['KD', '2C'], // higher high card
+                ['AS', 'AH'] // pair
+            ]
+
+            const communityCards = ['TD', '8C', '4C', '3S', 'JH']
+
+            const expected = [
+                ['AS', 'AH'],
+                ['KD', '2C'],
+                ['QC', '2H']
+            ]
+            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+        })
+
+        it('should return the appropriate winning order - 7', () => {
+            const hands = [
+                ['KC', '2H'], // high card
+                ['KD', '2C'], // high card
+                ['AS', 'AH'] // pair
+            ]
+
+            const communityCards = ['TD', '8C', '4C', '3S', 'JH']
+
+            const expected = [
+                ['AS', 'AH'],
+                [
+                    ['KC', '2H'],
+                    ['KD', '2C']
+                ]
+            ]
+            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+        })
+
+        it('should return the appropriate winning order - 8', () => {
+            const hands = [
+                ['KC', '2H'], // high card
+                ['TC', '8D'], // two pair
+                ['AS', 'AH'], // pair
+                ['KD', '2C'], // high card
+                ['AC', 'AD'], // pair
+                ['TH', '8H'] // two pair
+            ]
+
+            const communityCards = ['TD', '8C', '4C', '3S', 'JH']
+
+            const expected = [
+                [
+                    ['TC', '8D'], // two pair
+                    ['TH', '8H'] // two pair
+                ],
+                [
+                    ['AS', 'AH'], // pair
+                    ['AC', 'AD'] // pair
+                ],
+                [
+                    ['KC', '2H'], // high card
+                    ['KD', '2C'] // high card
+                ]
+            ]
+            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
         })
     })
 })

@@ -1,14 +1,119 @@
 const { strengthValues, FACES } = require('../constants')
 
+const distributeChipsToWinners = game => {
+    const remainingPlayers = game.players.filter(player => player.hand)
+    let winners = []
+    if (remainingPlayers.length === 1) {
+        winners.push(remainingPlayers[0])
+    } else {
+        const remainingHands = remainingPlayers.map(player => decryptHand(player.hand))
+        const winningOrder = getWinningOrder(remainingHands, game.communityCards)
+        if (winningOrder[0].length === 1) {
+            const winner = remainingPlayers.find(player => decryptHand(player.hand)[0] === winningOrder[0][0])
+            winners.push(winner)
+        } else {
+            winners = winningOrder[0].map(hand =>
+                remainingPlayers.find(player => decryptHand(player.hand)[0] === hand[0])
+            )
+        }
+    }
+
+    winners.forEach(winner => {
+        const winnerIndex = game.players.findIndex(player => player._id === winner._id)
+        const chipsWon = Math.round(game.pot / winners.length)
+        winner.chips += chipsWon
+        game.players.set(winnerIndex, winner)
+
+        console.log(`Giving player ${game.players[winnerIndex].name} ${chipsWon} chips`)
+    })
+
+    return game
+}
+
+const getWinningOrder = (hands, communityCards) => {
+    const sortedHandGroups = groupAndSortHandsByHandTypeStrength(hands, communityCards)
+    const winningOrder = []
+
+    sortedHandGroups.forEach(handsGroup => {
+        if (handsGroup.length === 1) {
+            return winningOrder.push(handsGroup[0])
+        }
+
+        /**  
+        The idea here is to loop through all of the hands and remove any ties to the comparison hand.
+        Doing this allows us to sort the hands (and determine the winning order of them) without 
+        dealing with the ties in the sort. Then we add the ties back in later so they are still a part of the
+        winning order. 
+        */
+
+        const tiesMap = {}
+        const handsToSort = []
+
+        // Remove the ties from the hands to sort.
+        handsGroup.forEach(hand => {
+            let noTies = true
+            handsToSort.forEach(handJ => {
+                if (!determineBetterHand([hand, handJ], communityCards)) {
+                    noTies = false
+                    if (!tiesMap[handJ[0]]) {
+                        tiesMap[handJ[0]] = [hand]
+                    } else {
+                        tiesMap[handJ[0]].push(hand)
+                    }
+                }
+            })
+            if (noTies) {
+                handsToSort.push(hand)
+            }
+        })
+
+        handsToSort.sort((a, b) => {
+            return determineBetterHand([a, b], communityCards)[0] === a[0] ? -1 : 1
+        })
+
+        handsToSort.forEach(hand => {
+            const ties = tiesMap[hand[0]]
+            if (ties) {
+                winningOrder.push([hand, ...ties])
+            } else {
+                winningOrder.push(hand)
+            }
+        })
+    })
+
+    return winningOrder
+}
+
+const groupAndSortHandsByHandTypeStrength = (hands, communityCards) => {
+    const bestHandsMap = {}
+    hands.forEach(hand => {
+        const bestHand = getBestHand(hand, communityCards) || 'HIGH_CARD'
+
+        if (!bestHandsMap[bestHand]) {
+            bestHandsMap[bestHand] = [hand]
+        } else {
+            bestHandsMap[bestHand].push(hand)
+        }
+    })
+
+    return Object.keys(bestHandsMap)
+        .sort((a, b) => {
+            if (a === 'HIGH_CARD') {
+                return 1
+            }
+
+            if (b === 'HIGH_CARD') {
+                return -1
+            }
+
+            return strengthValues[b] - strengthValues[a]
+        })
+        .map(handType => bestHandsMap[handType])
+}
+
 const determineBetterHand = (hands, communityCards) => {
     const bestHand1 = getBestHand(hands[0], communityCards)
     const bestHand2 = getBestHand(hands[1], communityCards)
-    /**
-     *
-     * TODO: group by best hands before comparing hand to hand.
-     *
-     *
-     */
 
     if (!bestHand1 && !bestHand2) {
         const hand = getHighestCardWinner(hands, communityCards)
@@ -431,5 +536,8 @@ const highCardStrength = cards => {
 
 module.exports = {
     determineBetterHand,
-    hasStraight
+    hasStraight,
+    groupAndSortHandsByHandTypeStrength,
+    getWinningOrder,
+    distributeChipsToWinners
 }
