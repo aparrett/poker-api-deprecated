@@ -1,11 +1,6 @@
-const CryptoJS = require('crypto-js')
-const { encryptionSalt } = require('../config')
 const { PREFLOP, FLOP, TURN, RIVER, phases, deck } = require('../constants')
 const { distributeChipsToWinners } = require('./winnerService')
-
-const encryptCard = card => CryptoJS.AES.encrypt(card, encryptionSalt).toString()
-const decryptCard = card => CryptoJS.AES.decrypt(card, encryptionSalt).toString(CryptoJS.enc.Utf8)
-const decryptHand = hand => [decryptCard(hand[0]), decryptCard(hand[1])]
+const { encryptCard, decryptCard, decryptHand } = require('./encryptionService')
 
 const getLargestBet = game => {
     if (game.bets.length === 0) {
@@ -258,7 +253,6 @@ const resetGame = game => {
 }
 
 module.exports = {
-    decryptHand,
     getLargestBet,
     updateAllUsers,
     finishTurn,

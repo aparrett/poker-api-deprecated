@@ -1,23 +1,33 @@
 const { strengthValues, FACES } = require('../constants')
+const { decryptHand } = require('./encryptionService')
 
 const distributeChipsToWinners = game => {
     const remainingPlayers = game.players.filter(player => player.hand)
+
     let winners = []
     if (remainingPlayers.length === 1) {
         winners.push(remainingPlayers[0])
     } else {
         const remainingHands = remainingPlayers.map(player => decryptHand(player.hand))
         const winningOrder = getWinningOrder(remainingHands, game.communityCards)
-        if (winningOrder[0].length === 1) {
-            const winner = remainingPlayers.find(player => decryptHand(player.hand)[0] === winningOrder[0][0])
+
+        if (typeof winningOrder[0][0] === 'string') {
+            const winner = remainingPlayers.find(
+                player =>
+                    decryptHand(player.hand)[0][0] === winningOrder[0][0][0] &&
+                    decryptHand(player.hand)[0][1] === winningOrder[0][0][1]
+            )
+
             winners.push(winner)
         } else {
             winners = winningOrder[0].map(hand =>
-                remainingPlayers.find(player => decryptHand(player.hand)[0] === hand[0])
+                remainingPlayers.find(
+                    player =>
+                        decryptHand(player.hand)[0][0] === hand[0][0] && decryptHand(player.hand)[0][1] === hand[0][1]
+                )
             )
         }
     }
-
     winners.forEach(winner => {
         const winnerIndex = game.players.findIndex(player => player._id === winner._id)
         const chipsWon = Math.round(game.pot / winners.length)

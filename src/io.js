@@ -1,5 +1,5 @@
 const { Game } = require('./models/Game')
-const { decryptHand } = require('./service/gameService')
+const { decryptHand } = require('./service/encryptionService')
 
 const initIo = io => {
     io.on('connection', function(socket) {
