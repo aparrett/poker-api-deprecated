@@ -5,7 +5,7 @@ const initIo = io => {
     io.on('connection', function(socket) {
         // joinGame fires when any user loads the game in their browser.
         socket.on('joinGame', async function(gameId, user) {
-            console.debug(`User joined game ${gameId}. User: ${user.username || 'Guest'} Socket: ${socket.id}`)
+            console.debug(`User joined game ${gameId}. User: ${user ? user.username : 'Guest'} Socket: ${socket.id}`)
 
             socket.join(gameId)
 

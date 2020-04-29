@@ -1,7 +1,7 @@
 const { strengthValues, FACES } = require('../constants')
 const { decryptHand } = require('./encryptionService')
 
-const distributeChipsToWinners = game => {
+const getWinners = game => {
     const remainingPlayers = game.players.filter(player => player.hand)
 
     let winners = []
@@ -28,6 +28,11 @@ const distributeChipsToWinners = game => {
             )
         }
     }
+
+    return winners
+}
+
+const distributeChipsToWinners = (game, winners) => {
     winners.forEach(winner => {
         const winnerIndex = game.players.findIndex(player => player._id === winner._id)
         const chipsWon = Math.round(game.pot / winners.length)
@@ -549,5 +554,6 @@ module.exports = {
     hasStraight,
     groupAndSortHandsByHandTypeStrength,
     getWinningOrder,
-    distributeChipsToWinners
+    distributeChipsToWinners,
+    getWinners
 }
