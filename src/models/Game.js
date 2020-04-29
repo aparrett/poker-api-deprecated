@@ -55,7 +55,7 @@ const gameSchema = new mongoose.Schema({
         required: true,
         default: PREFLOP
     },
-    usedCards: {
+    deck: {
         type: Array,
         required: true,
         default: []

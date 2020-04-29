@@ -2,13 +2,13 @@
 exports.FACES = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']
 exports.suits = ['S', 'D', 'C', 'H']
 
-const deck = []
-exports.FACES.forEach(nf => {
+const DECK = []
+exports.FACES.forEach(face => {
     exports.suits.forEach(suit => {
-        deck.push(nf + suit)
+        DECK.push(face + suit)
     })
 })
-exports.deck = deck
+exports.DECK = DECK
 
 exports.PREFLOP = 'PREFLOP'
 exports.FLOP = 'FLOP'

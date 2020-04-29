@@ -1,6 +1,6 @@
-const { PREFLOP, FLOP, TURN, RIVER, phases, deck } = require('../constants')
+const { PREFLOP, FLOP, TURN, RIVER, phases, DECK } = require('../constants')
 const { distributeChipsToWinners, getWinners } = require('./winnerService')
-const { encryptCard, decryptCard, decryptHand } = require('./encryptionService')
+const { encryptCard, decryptHand } = require('./encryptionService')
 
 const getLargestBet = game => {
     if (game.bets.length === 0) {
@@ -83,17 +83,16 @@ const incrementPhase = game => {
         return game
     }
 
+    const deck = game.deck
     if (game.phase === FLOP) {
-        const flop = [chooseCard(game.usedCards), chooseCard(game.usedCards), chooseCard(game.usedCards)]
+        const flop = [deck.pop(), deck.pop(), deck.pop()]
         flop.forEach(card => {
             game.communityCards.push(card)
-            game.usedCards.push(encryptCard(card))
         })
     } else if (game.phase === TURN || game.phase === RIVER) {
-        const card = chooseCard(game.usedCards)
-        game.communityCards.push(card)
-        game.usedCards.push(encryptCard(card))
+        game.communityCards.push(deck.pop())
     }
+    game.deck = deck
 
     game.lastToRaiseId = undefined
 
@@ -200,30 +199,27 @@ const setFirstToAct = game => {
     return game
 }
 
-const chooseCard = (usedCards, encrypted) => {
-    const decryptedUsedCards = usedCards.map(card => decryptCard(card))
-    let card = deck[randomIndex()]
-    while (decryptedUsedCards.includes(card)) {
-        card = deck[randomIndex()]
+const shuffleDeck = () => {
+    const deck = DECK.slice()
+    let count = deck.length
+    while (count) {
+        deck.push(deck.splice(Math.floor(Math.random() * count), 1)[0])
+        count -= 1
     }
-    return encrypted ? encryptCard(card) : card
+    return deck
 }
 
-const randomIndex = () => Math.ceil(Math.random() * 51)
-
 const deal = game => {
+    const deck = game.deck
     game.players.forEach((player, index) => {
-        const card1 = chooseCard(game.usedCards, true)
-        game.usedCards.push(card1)
+        const card1 = deck.pop()
+        const card2 = deck.pop()
 
-        const card2 = chooseCard(game.usedCards, true)
-        game.usedCards.push(card2)
-
-        player.hand = [card1, card2]
+        player.hand = [encryptCard(card1), encryptCard(card2)]
 
         game.players.set(index, player)
     })
-
+    game.deck = deck
     return game
 }
 
@@ -231,6 +227,7 @@ const startNextRound = game => {
     game = resetGame(game)
     game = setDealerChipAndBlinds(game)
     game = setFirstToAct(game)
+    game.deck = shuffleDeck()
     game = deal(game)
 
     return game
@@ -261,5 +258,6 @@ module.exports = {
     incrementTurn,
     finishRound,
     deal,
-    startNextRound
+    startNextRound,
+    shuffleDeck
 }
