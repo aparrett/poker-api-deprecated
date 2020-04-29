@@ -7,7 +7,7 @@ jest.mock('../src/service/winnerService')
 winnerService.distributeChipsToWinners.mockImplementation(game => game)
 
 describe('gameService', () => {
-    const game = { players: [], usedCards: [], communityCards: [], deck: DECK }
+    const game = { players: [], communityCards: [], deck: DECK }
     game.players.set = (index, player) => (game.players[index] = player)
 
     beforeEach(() => {
