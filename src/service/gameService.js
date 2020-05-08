@@ -11,7 +11,7 @@ const getLargestBet = game => {
 
 const updateAllUsers = game => {
     game = game.toObject()
-    const playersWithoutHands = game.players.map(player => ({ ...player, hand: undefined }))
+    const playersWithoutHands = game.players.map(player => ({ ...player, hand: [] }))
     const connectedSockets = Object.keys(io.in(game._id).sockets)
 
     connectedSockets.forEach(socketId => {

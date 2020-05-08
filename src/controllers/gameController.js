@@ -98,7 +98,6 @@ const joinTable = async (req, res) => {
 
     try {
         game = await game.save()
-
         updateAllUsers(game)
         return res.status(200).send()
     } catch (e) {
