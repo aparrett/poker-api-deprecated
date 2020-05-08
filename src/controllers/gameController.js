@@ -6,7 +6,8 @@ const {
     finishTurn,
     finishRound,
     startNextRound,
-    incrementTurn
+    incrementTurn,
+    resetGame
 } = require('../service/gameService')
 
 const createGame = async (req, res) => {
@@ -145,14 +146,9 @@ const leaveTable = async (req, res) => {
         if (game.players.length === 1) {
             const winner = game.players[0]
             winner.chips += game.pot
-            winner.hand = undefined
-            winner.isBigBlind = false
-            winner.isDealer = false
-            winner.isSmallBlind = false
 
             game.players.set(0, winner)
-            game.bets = []
-            game.pot = 0
+            game = resetGame(game)
         } else {
             if ([...new Set(game.bets.map(b => b.amount))].length > 0) {
                 let max = 0

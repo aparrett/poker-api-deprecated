@@ -83,7 +83,7 @@ const incrementPhase = game => {
         return game
     }
 
-    const deck = game.deck
+    const deck = game.deck.slice()
     if (game.phase === FLOP) {
         const flop = [deck.pop(), deck.pop(), deck.pop()]
         flop.forEach(card => {
@@ -237,7 +237,7 @@ const resetGame = game => {
     game.pot = 0
     game.lastToRaiseId = undefined
     game.bets = []
-    game.usedCards = []
+    game.deck = []
     game.communityCards = []
 
     game.players.forEach((player, i) => {
@@ -259,5 +259,6 @@ module.exports = {
     finishRound,
     deal,
     startNextRound,
-    shuffleDeck
+    shuffleDeck,
+    resetGame
 }
