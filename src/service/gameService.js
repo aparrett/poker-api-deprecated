@@ -247,6 +247,7 @@ const resetGame = game => {
     game.bets = []
     game.deck = []
     game.communityCards = []
+    game.phase = PREFLOP
 
     game.players.forEach((player, i) => {
         player.hasActed = false

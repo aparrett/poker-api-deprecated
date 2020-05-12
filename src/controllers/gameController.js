@@ -7,7 +7,6 @@ const {
     finishRound,
     startNextRound,
     incrementTurn,
-    resetGame,
     removeHand
 } = require('../service/gameService')
 
