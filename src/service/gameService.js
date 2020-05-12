@@ -11,7 +11,13 @@ const getLargestBet = game => {
 
 const updateAllUsers = game => {
     game = game.toObject()
-    const playersWithoutHands = game.players.map(player => ({ ...player, hand: [] }))
+    const playersWithoutHands = game.players.map(player => {
+        // A null hand means player has folded. Empty array means they have a hand, we just aren't
+        // passing it to the UI so nobody even has encrypted hands of other players.
+        // TODO: Find a cleaner solution.
+        const hand = player.hand && []
+        return { ...player, hand }
+    })
     const connectedSockets = Object.keys(io.in(game._id).sockets)
 
     connectedSockets.forEach(socketId => {
@@ -225,6 +231,7 @@ const deal = game => {
 
 const startNextRound = game => {
     game = resetGame(game)
+    game = seatWaitingPlayers(game)
     game = setDealerChipAndBlinds(game)
     game = setFirstToAct(game)
     game.deck = shuffleDeck()
@@ -247,6 +254,12 @@ const resetGame = game => {
         game.players.set(i, player)
     })
 
+    return game
+}
+
+const seatWaitingPlayers = game => {
+    game.playersWaiting.forEach(player => game.players.push(player))
+    game.playersWaiting = []
     return game
 }
 

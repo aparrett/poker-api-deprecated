@@ -69,8 +69,12 @@ const joinTable = async (req, res) => {
         return res.status(404).send('Game not found.')
     }
 
-    if ([...game.players, ...game.playersWaiting].find(player => player._id === user._id)) {
+    if (game.players.find(player => player._id.equals(user._id))) {
         return res.status(400).send('User is already sitting at the table.')
+    }
+
+    if (game.playersWaiting.find(player => player._id.equals(user._id))) {
+        return res.status(400).send('You will be dealt cards on the next hand.')
     }
 
     if (game.players.length + game.playersWaiting.length === game.maxPlayers) {
@@ -192,6 +196,11 @@ const call = async (req, res) => {
 
         const playerIndex = game.players.findIndex(player => player._id.equals(user._id))
         const player = game.players[playerIndex]
+
+        if (!player.isTurn) {
+            return res.status(400).send('You cannot call out of turn.')
+        }
+
         const largestBet = getLargestBet(game)
         const currentBetIndex = game.bets.findIndex(bet => bet.playerId.equals(user._id))
         const currentBet = game.bets[currentBetIndex]
@@ -233,6 +242,13 @@ const check = async (req, res) => {
             return res.status(404).send('Game not found.')
         }
 
+        const playerIndex = game.players.findIndex(player => player._id.equals(user._id))
+        const player = game.players[playerIndex]
+
+        if (!player.isTurn) {
+            return res.status(400).send('You cannot check out of turn.')
+        }
+
         const largestBet = getLargestBet(game)
         const currentBetIndex = game.bets.findIndex(bet => bet.playerId.equals(user._id))
         const currentBet = game.bets[currentBetIndex]
@@ -241,8 +257,6 @@ const check = async (req, res) => {
             return res.status(400).send('Cannot check when your bet does not equal the largest bet.')
         }
 
-        const playerIndex = game.players.findIndex(player => player._id.equals(user._id))
-        const player = game.players[playerIndex]
         player.hasActed = true
         game.players.set(playerIndex, player)
 
@@ -271,6 +285,10 @@ const fold = async (req, res) => {
 
         const playerIndex = game.players.findIndex(player => player._id.equals(user._id))
         const player = game.players[playerIndex]
+
+        if (!player.isTurn) {
+            return res.status(400).send('You cannot fold out of turn.')
+        }
 
         if (!player.hand) {
             return res.status(400).send('You cannot fold again.')
