@@ -29,7 +29,8 @@ const userSchema = new mongoose.Schema({
     },
     hand: {
         type: Array,
-        required: false
+        required: false,
+        default: null
     },
     chips: {
         type: Number,

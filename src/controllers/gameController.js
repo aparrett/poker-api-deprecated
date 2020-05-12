@@ -7,7 +7,8 @@ const {
     finishRound,
     startNextRound,
     incrementTurn,
-    resetGame
+    resetGame,
+    removeHand
 } = require('../service/gameService')
 
 const createGame = async (req, res) => {
@@ -45,10 +46,16 @@ const createGame = async (req, res) => {
 }
 
 const getGame = async (req, res) => {
-    const game = await Game.findById(req.params.id).select('-players.hand')
-    if (game) {
-        return res.send(game)
-    } else {
+    try {
+        const game = await Game.findById(req.params.id)
+
+        if (game) {
+            game.players = game.players.map(p => removeHand(p))
+            return res.send(game)
+        } else {
+            return res.status(404).send('Game not found.')
+        }
+    } catch (e) {
         return res.status(404).send('Game not found.')
     }
 }
@@ -131,51 +138,49 @@ const leaveTable = async (req, res) => {
         await Game.deleteOne({ _id: req.params.id })
 
         // Any empty game object as the 2nd emit parameter informs clients that the game has been deleted.
-        io.in(game._id).emit('gameUpdate')
+        return io.in(game._id).emit('gameUpdate')
+    }
+
+    const player = game.players[index]
+
+    if (player.isTurn) {
+        game = incrementTurn(game)
+    }
+
+    game.players.splice(index, 1)
+
+    const leaverBetIndex = game.bets.findIndex(bet => bet.playerId === player._id)
+    if (leaverBetIndex !== -1) {
+        game.bets.splice(leaverBetIndex, 1)
+    }
+
+    // If there's only one player remaining with a hand, give them any bets and reset the player.
+    if (game.players.filter(p => p.hand).length === 1) {
+        const winnerIndex = game.players.findIndex(p => p.hand)
+        const winner = game.players[winnerIndex]
+        winner.chips += game.pot
+        game.players.set(winnerIndex, winner)
+        game = startNextRound(game)
     } else {
-        const player = game.players[index]
-
-        if (player.isTurn) {
-            game = incrementTurn(game)
-        }
-
-        game.players.splice(index, 1)
-
-        const leaverBetIndex = game.bets.findIndex(bet => bet.playerId === player._id)
-        if (leaverBetIndex !== -1) {
-            game.bets.splice(leaverBetIndex, 1)
-        }
-
-        // If there's only one player remaining. Give them any bets and reset the player.
-        if (game.players.length === 1) {
-            const winner = game.players[0]
-            winner.chips += game.pot
-
-            game.players.set(0, winner)
-            game = resetGame(game)
-        } else {
-            if ([...new Set(game.bets.map(b => b.amount))].length > 0) {
-                let max = 0
-                game.bets.forEach(bet => {
-                    if (bet.amount > max) {
-                        game.lastToRaiseId = bet.playerId
-                        max = bet.amount
-                    }
-                })
-            }
-        }
-
-        try {
-            game = await game.save()
-            updateAllUsers(game)
-            return res.status(200).send()
-        } catch (e) {
-            console.log(e)
-            return res.status(500).send('Something went wrong.')
+        if ([...new Set(game.bets.map(b => b.amount))].length > 0) {
+            let max = 0
+            game.bets.forEach(bet => {
+                if (bet.amount > max) {
+                    game.lastToRaiseId = bet.playerId
+                    max = bet.amount
+                }
+            })
         }
     }
 
-    return res.status(204).send()
+    try {
+        game = await game.save()
+        updateAllUsers(game)
+        return res.status(200).send()
+    } catch (e) {
+        console.log(e)
+        return res.status(500).send('Something went wrong.')
+    }
 }
 
 const call = async (req, res) => {

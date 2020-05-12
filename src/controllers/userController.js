@@ -17,6 +17,8 @@ const createUser = async (req, res) => {
 
     const salt = await bcrypt.genSalt(10)
     user.password = await bcrypt.hash(user.password, salt)
+
+    user.hand = null
     user = await user.save()
 
     const token = user.generateAuthToken()
