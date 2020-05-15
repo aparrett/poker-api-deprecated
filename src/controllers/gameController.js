@@ -130,6 +130,14 @@ const leaveTable = async (req, res) => {
 
     const index = game.players.findIndex(player => player._id.equals(user._id))
     if (index === -1) {
+        const waitingIndex = game.playersWaiting.findIndex(player => player._id.equals(user._id))
+        if (waitingIndex !== -1) {
+            game.playersWaiting.splice(waitingIndex, 1)
+
+            game = await game.save()
+            updateAllUsers(game)
+            return res.status(200).send()
+        }
         return res.status(400).send('The requested user is not sitting at the table.')
     }
 
