@@ -123,9 +123,11 @@ const incrementPhase = game => {
     return game
 }
 
+// resets actions in between phases.
 const resetActions = game => {
     game.players.forEach((player, i) => {
-        game.players.set(i, { ...game.players[i], hasActed: false, lastAction: null })
+        const lastAction = player.lastAction === 'Fold' ? 'Fold' : null
+        game.players.set(i, { ...game.players[i], hasActed: false, lastAction })
     })
 
     return game
