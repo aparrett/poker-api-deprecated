@@ -144,37 +144,19 @@ const setDealerChipAndBlinds = game => {
 
     game.players.forEach((player, playerIndex) => {
         player.isTurn = false
+        player.isDealer = playerIndex === nextDealerIndex
 
-        if (playerIndex === nextDealerIndex) {
-            player.isDealer = true
-
-            if (numPlayers === 2) {
-                player.isSmallBlind = true
-                player.isBigBlind = false
-            }
+        if (numPlayers === 2) {
+            player.isSmallBlind = playerIndex === nextDealerIndex
+            player.isBigBlind = playerIndex !== nextDealerIndex
         } else {
-            player.isDealer = false
+            player.isSmallBlind =
+                (nextDealerIndex === numPlayers - 1 && playerIndex === 0) || playerIndex === nextDealerIndex + 1
 
-            if (numPlayers === 2) {
-                player.isSmallBlind = false
-                player.isBigBlind = true
-            } else if (
-                (nextDealerIndex === numPlayers - 1 && playerIndex === 0) ||
-                playerIndex === nextDealerIndex + 1
-            ) {
-                player.isSmallBlind = true
-                player.isBigBlind = false
-            } else if (
+            player.isBigBlind =
                 (nextDealerIndex === numPlayers - 2 && playerIndex === 0) ||
                 (nextDealerIndex === numPlayers - 1 && playerIndex === 1) ||
                 playerIndex === nextDealerIndex + 2
-            ) {
-                player.isSmallBlind = false
-                player.isBigBlind = true
-            } else {
-                player.isSmallBlind = false
-                player.isBigBlind = false
-            }
         }
 
         const blind = player.isBigBlind ? game.bigBlind : player.isSmallBlind ? game.smallBlind : 0
