@@ -117,8 +117,42 @@ const incrementPhase = game => {
     game.players.set(currentPlayerIndex, { ...game.players[currentPlayerIndex], isTurn: false })
     game.players.set(firstToActIndex, { ...game.players[firstToActIndex], isTurn: true })
 
+    game = reconcileAllIns(game)
     game.bets = []
     game = resetActions(game)
+
+    return game
+}
+
+const reconcileAllIns = game => {
+    const allInCount = game.allInHands.length
+    if (allInCount === 0) {
+        return
+    }
+
+    const playerCount = game.players.length
+
+    // If there is one player remaining who is not all-in, put their hand in allInHands to show to everyone.
+    if (allInCount === playerCount - 1) {
+        const allInIds = game.allInHands.map(a => a.playerId)
+        const playerIndex = game.players.findIndex(p => !allInIds.includes(p._id))
+        const player = game.players[playerIndex]
+        game.allInHands.push({ playerId: player._id, hand: decryptHand(player.hand) })
+    } else if (allInCount === playerCount) {
+        // If player with highest bet is all-in, subtract remaining total from the pot, and give it back to them.
+        const sortedBets = game.bets.sort((a, b) => b.amount - a.amount)
+        const highestBet = sortedBets[0]
+        const secondHighestBet = sortedBets[1]
+
+        const difference = highestBet.amount - secondHighestBet.amount
+        const playerIndex = game.players.findIndex(p => p._id.equals(highestBet.playerId))
+        const player = game.players[playerIndex]
+
+        player.chips += difference
+        game.players.set(playerIndex, player)
+
+        game.pot -= difference
+    }
 
     return game
 }
@@ -235,6 +269,7 @@ const resetGame = game => {
     game.deck = []
     game.communityCards = []
     game.phase = PREFLOP
+    game.allInHands = []
 
     game.players.forEach((player, i) => {
         player.hasActed = false

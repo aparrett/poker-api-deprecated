@@ -64,6 +64,12 @@ const gameSchema = new mongoose.Schema({
         type: Array,
         required: true,
         default: []
+    },
+    // storing all-in hands here so that they can always be unencrypted.
+    allInHands: {
+        type: Array,
+        required: true,
+        default: []
     }
 })
 

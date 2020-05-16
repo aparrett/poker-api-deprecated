@@ -9,6 +9,7 @@ const {
     incrementTurn,
     removeHand
 } = require('../service/gameService')
+const { decryptHand } = require('../service/encryptionService')
 
 const createGame = async (req, res) => {
     const user = await User.findById(req.user._id).select('-password')
@@ -341,8 +342,8 @@ const raise = async (req, res) => {
         }
 
         const raiseAmount = Number(req.body.amount)
-        if (typeof raiseAmount !== 'number') {
-            return res.status(400).send('Raise must be a number.')
+        if (!raiseAmount || typeof raiseAmount !== 'number') {
+            return res.status(400).send('Raise must be a number greater than 0.')
         }
 
         const playerIndex = game.players.findIndex(player => player._id.equals(user._id))
@@ -369,9 +370,15 @@ const raise = async (req, res) => {
             game.bets.push({ playerId: player._id, username: player.username, amount: totalBet })
         }
 
+        if (totalBet === player.chips) {
+            game.allInHands.push({ playerId: player._id, hand: decryptHand(player.hand) })
+            player.lastAction = 'All-In'
+        } else {
+            player.lastAction = 'Raise'
+        }
+
         game.lastToRaiseId = player._id
 
-        player.lastAction = 'Raise'
         player.chips -= totalBet
         game.players.set(playerIndex, player)
 
