@@ -152,7 +152,7 @@ const leaveTable = async (req, res) => {
     const player = game.players[index]
 
     if (player.isTurn) {
-        game = incrementTurn(game)
+        game = finishTurn(game)
     }
 
     game.players.splice(index, 1)
@@ -221,7 +221,14 @@ const call = async (req, res) => {
         const betAmount = player.chips < amountToCall ? player.chips : amountToCall
 
         player.chips -= betAmount
-        player.lastAction = 'Call'
+
+        if (!player.chips) {
+            player.lastAction = 'All-In'
+            game.allInHands.push({ playerId: player._id, hand: decryptHand(player.hand) })
+        } else {
+            player.lastAction = 'Call'
+        }
+
         game.players.set(playerIndex, player)
 
         if (currentBet) {

@@ -50,9 +50,17 @@ const finishTurn = game => {
     ) {
         game = incrementPhase(game)
     } else {
-        const allPlayersHaveLargestBet =
-            game.players.filter(p => p.hand).length === game.bets.filter(b => b.amount === largestBet).length
-        const allPlayerHaveActed = !game.players.find(p => p.hand && !p.hasActed)
+        const playersWithHands = game.players.filter(p => p.hand)
+        const playersWithLargestBet = game.bets.filter(b => {
+            const player = playersWithHands.find(p => p._id.equals(b.playerId))
+            return b.amount === largestBet || player.chips === 0
+        })
+
+        console.log(playersWithHands.length)
+        console.log(playersWithLargestBet.length)
+
+        const allPlayersHaveLargestBet = playersWithHands.length === playersWithLargestBet.length
+        const allPlayerHaveActed = !playersWithHands.find(p => !p.hasActed)
 
         if ((game.lastToRaiseId && allPlayersHaveLargestBet) || (!game.lastToRaiseId && allPlayerHaveActed)) {
             game = incrementPhase(game)
@@ -68,8 +76,8 @@ const incrementTurn = game => {
     const currentPlayerIndex = game.players.findIndex(p => p.isTurn)
     let nextPlayerIndex = (currentPlayerIndex + 1) % game.players.length
 
-    // Players that have folded will not have a hand and should be skipped.
-    while (!game.players[nextPlayerIndex].hand) {
+    // Players that have folded or went all-in will be skipped.
+    while (!game.players[nextPlayerIndex].hand || game.players[nextPlayerIndex].lastAction === 'All-In') {
         nextPlayerIndex = (nextPlayerIndex + 1) % game.players.length
     }
 
@@ -124,10 +132,12 @@ const incrementPhase = game => {
     return game
 }
 
+// TODO: add automated tests for this function. Need to find an alternative to equals function to test
+// adequately.
 const reconcileAllIns = game => {
     const allInCount = game.allInHands.length
     if (allInCount === 0) {
-        return
+        return game
     }
 
     const playerCount = game.players.length
@@ -145,13 +155,15 @@ const reconcileAllIns = game => {
         const secondHighestBet = sortedBets[1]
 
         const difference = highestBet.amount - secondHighestBet.amount
-        const playerIndex = game.players.findIndex(p => p._id.equals(highestBet.playerId))
-        const player = game.players[playerIndex]
+        if (difference) {
+            const playerIndex = game.players.findIndex(p => p._id.equals(highestBet.playerId))
+            const player = game.players[playerIndex]
 
-        player.chips += difference
-        game.players.set(playerIndex, player)
+            player.chips += difference
+            game.players.set(playerIndex, player)
 
-        game.pot -= difference
+            game.pot -= difference
+        }
     }
 
     return game
@@ -160,7 +172,7 @@ const reconcileAllIns = game => {
 // resets actions in between phases.
 const resetActions = game => {
     game.players.forEach((player, i) => {
-        const lastAction = player.lastAction === 'Fold' ? 'Fold' : null
+        const lastAction = player.lastAction === 'Fold' || player.lastAction === 'All-In' ? player.lastAction : null
         game.players.set(i, { ...game.players[i], hasActed: false, lastAction })
     })
 
@@ -301,5 +313,6 @@ module.exports = {
     startNextRound,
     shuffleDeck,
     resetGame,
-    removeHand
+    removeHand,
+    reconcileAllIns
 }

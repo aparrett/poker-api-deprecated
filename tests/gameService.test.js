@@ -1,4 +1,4 @@
-const { incrementTurn, incrementPhase } = require('../src/service/gameService')
+const { incrementTurn, incrementPhase, reconcileAllIns } = require('../src/service/gameService')
 const { PREFLOP, FLOP, RIVER, DECK } = require('../src/constants')
 
 const winnerService = require('../src/service/winnerService')
