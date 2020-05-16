@@ -215,11 +215,12 @@ const deal = game => {
 const startNextRound = game => {
     game = resetGame(game)
     game = seatWaitingPlayers(game)
-    game = setDealerChipAndBlinds(game)
-    game = setFirstToAct(game)
-    game.deck = shuffleDeck()
-    game = deal(game)
-
+    if (game.players.length !== 1) {
+        game = setDealerChipAndBlinds(game)
+        game = setFirstToAct(game)
+        game.deck = shuffleDeck()
+        game = deal(game)
+    }
     return game
 }
 
@@ -234,6 +235,8 @@ const resetGame = game => {
     game.players.forEach((player, i) => {
         player.hasActed = false
         player.isTurn = false
+        player.isBigBlind = false
+        player.isSmallBlind = false
         player.hand = undefined
         game.players.set(i, player)
     })
