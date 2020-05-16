@@ -56,6 +56,11 @@ const userSchema = new mongoose.Schema({
     hasActed: {
         type: Boolean,
         required: false
+    },
+    lastAction: {
+        type: String,
+        required: false,
+        default: null
     }
 })
 

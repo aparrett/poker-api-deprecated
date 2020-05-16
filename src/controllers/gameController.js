@@ -220,6 +220,7 @@ const call = async (req, res) => {
         const betAmount = player.chips < amountToCall ? player.chips : amountToCall
 
         player.chips -= betAmount
+        player.lastAction = 'Call'
         game.players.set(playerIndex, player)
 
         if (currentBet) {
@@ -270,6 +271,7 @@ const check = async (req, res) => {
         }
 
         player.hasActed = true
+        player.lastAction = 'Check'
         game.players.set(playerIndex, player)
 
         game = finishTurn(game)
@@ -306,6 +308,7 @@ const fold = async (req, res) => {
             return res.status(400).send('You cannot fold again.')
         }
 
+        player.lastAction = 'Fold'
         player.hand = undefined
         game.players.set(playerIndex, player)
 
@@ -368,6 +371,7 @@ const raise = async (req, res) => {
 
         game.lastToRaiseId = player._id
 
+        player.lastAction = 'Raise'
         player.chips -= totalBet
         game.players.set(playerIndex, player)
 

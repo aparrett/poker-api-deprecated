@@ -83,20 +83,20 @@ const incrementTurn = game => {
 const incrementPhase = game => {
     const currentPhaseIndex = phases.findIndex(phase => phase === game.phase)
     const nextPhaseIndex = (currentPhaseIndex + 1) % phases.length
-
-    game.phase = phases[nextPhaseIndex]
-    if (game.phase === PREFLOP) {
+    const newPhase = phases[nextPhaseIndex]
+    game.phase = newPhase
+    if (newPhase === PREFLOP) {
         game = finishRound(game)
         return game
     }
 
     const deck = game.deck.slice()
-    if (game.phase === FLOP) {
+    if (newPhase === FLOP) {
         const flop = [deck.pop(), deck.pop(), deck.pop()]
         flop.forEach(card => {
             game.communityCards.push(card)
         })
-    } else if (game.phase === TURN || game.phase === RIVER) {
+    } else if (newPhase === TURN || newPhase === RIVER) {
         game.communityCards.push(deck.pop())
     }
     game.deck = deck
@@ -114,17 +114,19 @@ const incrementPhase = game => {
     }
 
     const currentPlayerIndex = game.players.findIndex(p => p.isTurn)
-    game.players.set(currentPlayerIndex, { ...game.players[currentPlayerIndex], isTurn: false, hasActed: false })
-    game.players.set(firstToActIndex, { ...game.players[firstToActIndex], isTurn: true, hasActed: false })
-
-    // TODO: add tests for this
-    game.players.forEach((player, i) => {
-        if (player.hand && ![currentPlayerIndex, firstToActIndex].includes(i)) {
-            game.players.set(i, { ...game.players[i], hasActed: false })
-        }
-    })
+    game.players.set(currentPlayerIndex, { ...game.players[currentPlayerIndex], isTurn: false })
+    game.players.set(firstToActIndex, { ...game.players[firstToActIndex], isTurn: true })
 
     game.bets = []
+    game = resetActions(game)
+
+    return game
+}
+
+const resetActions = game => {
+    game.players.forEach((player, i) => {
+        game.players.set(i, { ...game.players[i], hasActed: false, lastAction: null })
+    })
 
     return game
 }
@@ -235,6 +237,7 @@ const resetGame = game => {
     game.players.forEach((player, i) => {
         player.hasActed = false
         player.isTurn = false
+        player.lastAction = null
         player.isBigBlind = false
         player.isSmallBlind = false
         player.hand = undefined
