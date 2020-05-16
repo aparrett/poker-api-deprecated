@@ -56,9 +56,6 @@ const finishTurn = game => {
             return b.amount === largestBet || player.chips === 0
         })
 
-        console.log(playersWithHands.length)
-        console.log(playersWithLargestBet.length)
-
         const allPlayersHaveLargestBet = playersWithHands.length === playersWithLargestBet.length
         const allPlayerHaveActed = !playersWithHands.find(p => !p.hasActed)
 
@@ -72,8 +69,8 @@ const finishTurn = game => {
     return game
 }
 
-const incrementTurn = game => {
-    const currentPlayerIndex = game.players.findIndex(p => p.isTurn)
+const incrementTurn = (game, startDealer = false) => {
+    const currentPlayerIndex = game.players.findIndex(p => (startDealer ? p.isDealer : p.isTurn))
     let nextPlayerIndex = (currentPlayerIndex + 1) % game.players.length
 
     // Players that have folded or went all-in will be skipped.
@@ -87,7 +84,6 @@ const incrementTurn = game => {
     return game
 }
 
-// TODO: consider refactoring and combine shared code from incrementTurn
 const incrementPhase = game => {
     const currentPhaseIndex = phases.findIndex(phase => phase === game.phase)
     const nextPhaseIndex = (currentPhaseIndex + 1) % phases.length
@@ -111,25 +107,27 @@ const incrementPhase = game => {
 
     game.lastToRaiseId = undefined
 
-    const dealerIndex = game.players.findIndex(p => p.isDealer)
-
-    // Dealer is last to act.
-    let firstToActIndex = (dealerIndex + 1) % game.players.length
-
-    // If dealer has folded, continue to search for the next player who hasn't folded.
-    while (!game.players[firstToActIndex].hand) {
-        firstToActIndex = (firstToActIndex + 1) % game.players.length
+    game = reconcileAllIns(game)
+    if (shouldAutoIncrementPhase(game)) {
+        setTimeout(async () => {
+            game = incrementPhase(game)
+            await game.save()
+            updateAllUsers(game)
+        }, 1500)
+    } else {
+        game = incrementTurn(game, true)
     }
 
-    const currentPlayerIndex = game.players.findIndex(p => p.isTurn)
-    game.players.set(currentPlayerIndex, { ...game.players[currentPlayerIndex], isTurn: false })
-    game.players.set(firstToActIndex, { ...game.players[firstToActIndex], isTurn: true })
-
-    game = reconcileAllIns(game)
     game.bets = []
     game = resetActions(game)
 
     return game
+}
+
+// we need to auto-increment the phases when everyone is all-in.
+const shouldAutoIncrementPhase = game => {
+    const playersWithHands = game.players.filter(p => p.hand)
+    return game.allInHands.length > 0 && playersWithHands.length === game.allInHands.length
 }
 
 // TODO: add automated tests for this function. Need to find an alternative to equals function to test
@@ -140,7 +138,7 @@ const reconcileAllIns = game => {
         return game
     }
 
-    const playerCount = game.players.length
+    const playerCount = game.players.filter(p => p.hand).length
 
     // If there is one player remaining who is not all-in, put their hand in allInHands to show to everyone.
     if (allInCount === playerCount - 1) {
@@ -150,19 +148,25 @@ const reconcileAllIns = game => {
         game.allInHands.push({ playerId: player._id, hand: decryptHand(player.hand) })
     } else if (allInCount === playerCount) {
         // If player with highest bet is all-in, subtract remaining total from the pot, and give it back to them.
-        const sortedBets = game.bets.sort((a, b) => b.amount - a.amount)
-        const highestBet = sortedBets[0]
-        const secondHighestBet = sortedBets[1]
+        const bets = game.bets.slice()
 
-        const difference = highestBet.amount - secondHighestBet.amount
-        if (difference) {
-            const playerIndex = game.players.findIndex(p => p._id.equals(highestBet.playerId))
-            const player = game.players[playerIndex]
+        // If this function is called by the auto-increment, there won't be any bets
+        // and we don't want to do this. (it will have already been done)
+        if (bets.length !== 0) {
+            bets.sort((a, b) => b.amount - a.amount)
+            const highestBet = bets[0]
+            const secondHighestBet = bets[1]
 
-            player.chips += difference
-            game.players.set(playerIndex, player)
+            const difference = highestBet.amount - secondHighestBet.amount
+            if (difference) {
+                const playerIndex = game.players.findIndex(p => p._id.equals(highestBet.playerId))
+                const player = game.players[playerIndex]
 
-            game.pot -= difference
+                player.chips += difference
+                game.players.set(playerIndex, player)
+
+                game.pot -= difference
+            }
         }
     }
 
