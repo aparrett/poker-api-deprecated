@@ -34,51 +34,41 @@ const updateAllUsers = game => {
 }
 
 const finishTurn = game => {
-    const currentPlayerIndex = game.players.findIndex(p => p.isTurn)
-    const currentPlayer = game.players[currentPlayerIndex]
-
     const largestBet = getLargestBet(game)
-    const currentBetIndex = game.bets.findIndex(bet => bet.playerId.equals(currentPlayer._id))
-    const currentBet = game.bets[currentBetIndex]
 
-    if (
-        game.phase === PREFLOP &&
-        currentPlayer.isBigBlind &&
-        currentBet &&
-        currentBet.amount === largestBet &&
-        !currentPlayer._id.equals(game.lastToRaiseId)
-    ) {
+    const playersToAct = game.players.filter(p => p.hand && p.lastAction !== 'All-In')
+    const playersWithLargestBet = playersToAct.filter(player => {
+        const bet = game.bets.find(b => player._id.toString() === b.playerId.toString())
+        return bet && bet.amount === largestBet
+    })
+
+    const allPlayersHaveLargestBet = playersWithLargestBet.length >= playersToAct.length
+    const allPlayerHaveActed = !playersToAct.find(p => !p.lastAction)
+
+    if ((game.lastToRaiseId && allPlayersHaveLargestBet) || (!game.lastToRaiseId && allPlayerHaveActed)) {
         game = incrementPhase(game)
     } else {
-        const playersWithHands = game.players.filter(p => p.hand)
-        const playersWithLargestBet = game.bets.filter(b => {
-            const player = playersWithHands.find(p => p._id.equals(b.playerId))
-            return b.amount === largestBet || player.chips === 0
-        })
-
-        const allPlayersHaveLargestBet = playersWithHands.length === playersWithLargestBet.length
-        const allPlayerHaveActed = !playersWithHands.find(p => !p.hasActed)
-
-        if ((game.lastToRaiseId && allPlayersHaveLargestBet) || (!game.lastToRaiseId && allPlayerHaveActed)) {
-            game = incrementPhase(game)
-        } else {
-            game = incrementTurn(game)
-        }
+        game = incrementTurn(game)
     }
 
     return game
 }
 
 const incrementTurn = (game, startDealer = false) => {
-    const currentPlayerIndex = game.players.findIndex(p => (startDealer ? p.isDealer : p.isTurn))
-    let nextPlayerIndex = (currentPlayerIndex + 1) % game.players.length
+    const playerToResetIndex = game.players.findIndex(p => p.isTurn)
+    game.players.set(playerToResetIndex, { ...game.players[playerToResetIndex], isTurn: false })
 
-    // Players that have folded or went all-in will be skipped.
+    // when incrementing the phase, we start at the person left of the dealer because the dealer is last to act.
+    const dealerIndex = game.players.findIndex(p => p.isDealer)
+    const startingIndex = startDealer ? dealerIndex : playerToResetIndex
+
+    let nextPlayerIndex = (startingIndex + 1) % game.players.length
+
+    // If the next player doesn't have a hand or is all-in, skip them.
     while (!game.players[nextPlayerIndex].hand || game.players[nextPlayerIndex].lastAction === 'All-In') {
         nextPlayerIndex = (nextPlayerIndex + 1) % game.players.length
     }
 
-    game.players.set(currentPlayerIndex, { ...game.players[currentPlayerIndex], isTurn: false })
     game.players.set(nextPlayerIndex, { ...game.players[nextPlayerIndex], isTurn: true })
 
     return game
@@ -125,7 +115,7 @@ const incrementPhase = game => {
 }
 
 // we need to auto-increment the phases when everyone is all-in.
-const shouldAutoIncrementPhase = game => {
+shouldAutoIncrementPhase = game => {
     const playersWithHands = game.players.filter(p => p.hand)
     return game.allInHands.length > 0 && playersWithHands.length === game.allInHands.length
 }

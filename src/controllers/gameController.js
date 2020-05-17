@@ -6,7 +6,6 @@ const {
     finishTurn,
     finishRound,
     startNextRound,
-    incrementTurn,
     removeHand
 } = require('../service/gameService')
 const { decryptHand } = require('../service/encryptionService')
