@@ -170,7 +170,7 @@ const reconcileAllIns = game => {
 const resetActions = game => {
     game.players.forEach((player, i) => {
         const lastAction = player.lastAction === 'Fold' || player.lastAction === 'All-In' ? player.lastAction : null
-        game.players.set(i, { ...game.players[i], hasActed: false, lastAction })
+        game.players.set(i, { ...game.players[i], lastAction })
     })
 
     return game
@@ -281,7 +281,6 @@ const resetGame = game => {
     game.allInHands = []
 
     game.players.forEach((player, i) => {
-        player.hasActed = false
         player.isTurn = false
         player.lastAction = null
         player.isBigBlind = false

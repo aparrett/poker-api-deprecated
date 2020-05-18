@@ -277,7 +277,6 @@ const check = async (req, res) => {
             return res.status(400).send('Cannot check when your bet does not equal the largest bet.')
         }
 
-        player.hasActed = true
         player.lastAction = 'Check'
         game.players.set(playerIndex, player)
 
