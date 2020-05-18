@@ -75,11 +75,11 @@ const joinTable = async (req, res) => {
         return res.status(404).send('Game not found.')
     }
 
-    if (game.players.find(player => player._id.equals(user._id))) {
+    if (game.players.find(player => player._id.toString() === user._id.toString())) {
         return res.status(400).send('User is already sitting at the table.')
     }
 
-    if (game.playersWaiting.find(player => player._id.equals(user._id))) {
+    if (game.playersWaiting.find(player => player._id.toString() === user._id.toString())) {
         return res.status(400).send('You will be dealt cards on the next hand.')
     }
 
@@ -128,9 +128,9 @@ const leaveTable = async (req, res) => {
         return res.status(404).send('Game not found.')
     }
 
-    const index = game.players.findIndex(player => player._id.equals(user._id))
+    const index = game.players.findIndex(player => player._id.toString() === user._id.toString())
     if (index === -1) {
-        const waitingIndex = game.playersWaiting.findIndex(player => player._id.equals(user._id))
+        const waitingIndex = game.playersWaiting.findIndex(player => player._id.toString() === user._id.toString())
         if (waitingIndex !== -1) {
             game.playersWaiting.splice(waitingIndex, 1)
 
@@ -206,7 +206,7 @@ const call = async (req, res) => {
             return res.status(400).send('Cannot call your own raise.')
         }
 
-        const playerIndex = game.players.findIndex(player => player._id.equals(user._id))
+        const playerIndex = game.players.findIndex(player => player._id.toString() === user._id.toString())
         const player = game.players[playerIndex]
 
         if (!player.isTurn) {
@@ -214,7 +214,7 @@ const call = async (req, res) => {
         }
 
         const largestBet = getLargestBet(game)
-        const currentBetIndex = game.bets.findIndex(bet => bet.playerId.equals(user._id))
+        const currentBetIndex = game.bets.findIndex(bet => bet.playerId.toString() === user._id.toString())
         const currentBet = game.bets[currentBetIndex]
         const amountToCall = currentBet ? largestBet - currentBet.amount : largestBet
         const betAmount = player.chips < amountToCall ? player.chips : amountToCall
@@ -262,7 +262,7 @@ const check = async (req, res) => {
             return res.status(404).send('Game not found.')
         }
 
-        const playerIndex = game.players.findIndex(player => player._id.equals(user._id))
+        const playerIndex = game.players.findIndex(player => player._id.toString() === user._id.toString())
         const player = game.players[playerIndex]
 
         if (!player.isTurn) {
@@ -270,7 +270,7 @@ const check = async (req, res) => {
         }
 
         const largestBet = getLargestBet(game)
-        const currentBetIndex = game.bets.findIndex(bet => bet.playerId.equals(user._id))
+        const currentBetIndex = game.bets.findIndex(bet => bet.playerId.toString() === user._id.toString())
         const currentBet = game.bets[currentBetIndex]
 
         if (largestBet !== 0 && (!currentBet || currentBet.amount !== largestBet)) {
@@ -304,7 +304,7 @@ const fold = async (req, res) => {
             return res.status(404).send('Game not found.')
         }
 
-        const playerIndex = game.players.findIndex(player => player._id.equals(user._id))
+        const playerIndex = game.players.findIndex(player => player._id.toString() === user._id.toString())
         const player = game.players[playerIndex]
 
         if (!player.isTurn) {
@@ -352,7 +352,7 @@ const raise = async (req, res) => {
             return res.status(400).send('Raise must be a number greater than 0.')
         }
 
-        const playerIndex = game.players.findIndex(player => player._id.equals(user._id))
+        const playerIndex = game.players.findIndex(player => player._id.toString() === user._id.toString())
         const player = game.players[playerIndex]
 
         if (player._id === game.lastToRaiseId) {
@@ -360,7 +360,7 @@ const raise = async (req, res) => {
         }
 
         const largestBet = getLargestBet(game)
-        const currentBetIndex = game.bets.findIndex(bet => bet.playerId.equals(user._id))
+        const currentBetIndex = game.bets.findIndex(bet => bet.playerId.toString() === user._id.toString())
         const currentBet = game.bets[currentBetIndex]
         const amountToCall = currentBet ? largestBet - currentBet.amount : largestBet
         const totalBet = amountToCall + raiseAmount

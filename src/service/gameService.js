@@ -99,11 +99,7 @@ const incrementPhase = game => {
 
     game = reconcileAllIns(game)
     if (shouldAutoIncrementPhase(game)) {
-        setTimeout(async () => {
-            game = incrementPhase(game)
-            await game.save()
-            updateAllUsers(game)
-        }, 1500)
+        autoIncrementPhase(game)
     } else {
         game = incrementTurn(game, true)
     }
@@ -114,14 +110,21 @@ const incrementPhase = game => {
     return game
 }
 
+const autoIncrementPhase = game => {
+    setTimeout(async () => {
+        game = incrementPhase(game)
+        await game.save()
+        updateAllUsers(game)
+    }, 1500)
+}
+
 // we need to auto-increment the phases when everyone is all-in.
-shouldAutoIncrementPhase = game => {
+const shouldAutoIncrementPhase = game => {
     const playersWithHands = game.players.filter(p => p.hand)
     return game.allInHands.length > 0 && playersWithHands.length === game.allInHands.length
 }
 
-// TODO: add automated tests for this function. Need to find an alternative to equals function to test
-// adequately.
+// TODO: add automated tests for this function.
 const reconcileAllIns = game => {
     const allInCount = game.allInHands.length
     if (allInCount === 0) {
@@ -149,7 +152,7 @@ const reconcileAllIns = game => {
 
             const difference = highestBet.amount - secondHighestBet.amount
             if (difference) {
-                const playerIndex = game.players.findIndex(p => p._id.equals(highestBet.playerId))
+                const playerIndex = game.players.findIndex(p => p._id.toString() === highestBet.playerId.toString())
                 const player = game.players[playerIndex]
 
                 player.chips += difference
@@ -308,5 +311,6 @@ module.exports = {
     shuffleDeck,
     resetGame,
     removeHand,
-    reconcileAllIns
+    reconcileAllIns,
+    autoIncrementPhase
 }

@@ -11,7 +11,7 @@ const initIo = io => {
 
             const game = await Game.findById(gameId)
             if (user) {
-                const playerIndex = game.players.findIndex(player => player._id.equals(user._id))
+                const playerIndex = game.players.findIndex(player => player._id.toString() === user._id.toString())
 
                 // This handles the case where the user loads the game in their browser
                 // but they are already sitting at the table.
