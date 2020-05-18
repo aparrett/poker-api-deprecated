@@ -1,9 +1,6 @@
-const gameService = require('../src/service/gameService')
+const { incrementTurn, incrementPhase, finishTurn } = require('../src/service/gameService')
 const { PREFLOP, FLOP, TURN, RIVER, DECK } = require('../src/constants')
 
-const { incrementTurn, incrementPhase, finishTurn } = gameService
-gameService.autoIncrementPhase = jest.mock()
-jest.useFakeTimers()
 const winnerService = require('../src/service/winnerService')
 jest.mock('../src/service/winnerService')
 
@@ -166,6 +163,7 @@ describe('gameService', () => {
             const result = finishTurn(game)
             expect(result.phase).toEqual(FLOP)
         })
+
         it('pre-flop - should increment phase when all have called a raise', () => {
             game.players.push({ _id: 'bb', isTurn: true, isBigBlind: true, hand: ['AS', 'AD'], lastAction: 'Call' })
             game.players.push({
@@ -185,6 +183,7 @@ describe('gameService', () => {
             const result = finishTurn(game)
             expect(result.phase).toEqual(FLOP)
         })
+
         it('pre-flop - should increment phase when big blind raises and all have called', () => {
             game.players.push({ _id: 'bb', isTurn: true, isBigBlind: true, hand: ['AS', 'AD'], lastAction: 'Raise' })
             game.players.push({
@@ -204,6 +203,7 @@ describe('gameService', () => {
             const result = finishTurn(game)
             expect(result.phase).toEqual(FLOP)
         })
+
         it('pre-flop - should increment turn when big blind calls and someone hasnt called yet', () => {
             game.players.push({
                 _id: 'sb',
@@ -226,6 +226,7 @@ describe('gameService', () => {
             expect(result.phase).toEqual(PREFLOP)
             expect(result.players.find(p => p._id === 'p1').isTurn).toEqual(true)
         })
+
         it('pre-flop - should increment turn when big blind raises and someone hasnt called yet', () => {
             game.players.push({
                 _id: 'sb',
@@ -248,6 +249,7 @@ describe('gameService', () => {
             expect(result.phase).toEqual(PREFLOP)
             expect(result.players.find(p => p._id === 'sb').isTurn).toEqual(true)
         })
+
         it('should increment turn when player checks and other players havent played', () => {
             game.phase = FLOP
             game.players.push({ _id: 'p1', isTurn: false, hand: ['KS', 'KD'] })
@@ -258,6 +260,7 @@ describe('gameService', () => {
             expect(result.phase).toEqual(FLOP)
             expect(result.players.find(p => p._id === 'p1').isTurn).toEqual(true)
         })
+
         it('should increment turn when player raises', () => {
             game.phase = FLOP
             game.players.push({ _id: 'p1', isTurn: false, hand: ['KS', 'KD'] })
@@ -269,6 +272,7 @@ describe('gameService', () => {
             expect(result.phase).toEqual(FLOP)
             expect(result.players.find(p => p._id === 'p1').isTurn).toEqual(true)
         })
+
         it('should increment turn when player calls and other players havent played yet', () => {
             game.phase = FLOP
             game.players.push({ _id: 'p1', isTurn: true, hand: ['KS', 'KD'], lastAction: 'Call' })
@@ -283,6 +287,7 @@ describe('gameService', () => {
             expect(result.phase).toEqual(FLOP)
             expect(result.players.find(p => p._id === 'p2').isTurn).toEqual(true)
         })
+
         it('should increment phase when player folds, one player just went all-in, and other player has called', () => {
             game.phase = FLOP
             game.players.push({ _id: 'p1', isTurn: true, lastAction: 'Fold' })
@@ -297,6 +302,7 @@ describe('gameService', () => {
             const result = finishTurn(game)
             expect(result.phase).toEqual(TURN)
         })
+
         it('should increment turn when player folds, one player just went all-in, and other player has not called', () => {
             game.phase = FLOP
             game.players.push({ _id: 'p1', isTurn: false, hand: ['KS', 'KD'], lastAction: 'Check' })
@@ -311,6 +317,7 @@ describe('gameService', () => {
             expect(result.phase).toEqual(FLOP)
             expect(result.players.find(p => p._id === 'p1').isTurn).toEqual(true)
         })
+
         it('should increment phase when player folds, other two are all-in', () => {
             game.phase = FLOP
             game.players.push({ _id: 'p1', isTurn: true, lastAction: 'Fold' })
@@ -321,14 +328,58 @@ describe('gameService', () => {
                 { playerId: 'p2', amount: 30 },
                 { playerId: 'p3', amount: 50 }
             ]
-            game.save = jest.fn()
             game.allInHands.push(['AC', 'AH'])
             game.allInHands.push(['AS', 'AD'])
+
             const result = finishTurn(game)
             expect(result.phase).toEqual(TURN)
         })
-        it('should increment phase when all players are all-in', () => {})
-        it('should increment phase when last player folds and others have checked', () => {})
-        it('should increment turn when two players are all-in and third hasnt played yet', () => {})
+
+        it('should increment phase when all players are all-in', () => {
+            game.phase = FLOP
+            game.players.push({ _id: 'p1', isTurn: true, hand: ['KS', 'KD'], lastAction: 'All-In' })
+            game.players.push({ _id: 'p2', isTurn: false, hand: ['AS', 'AD'], lastAction: 'All-In' })
+            game.players.push({ _id: 'p3', isTurn: false, hand: ['AC', 'AH'], lastAction: 'All-In' })
+            game.lastToRaiseId = 'p3'
+            game.bets = [
+                { playerId: 'p1', amount: 30 },
+                { playerId: 'p2', amount: 30 },
+                { playerId: 'p3', amount: 50 }
+            ]
+            game.allInHands.push(['AS', 'AD'])
+            game.allInHands.push(['AC', 'AH'])
+            game.allInHands.push(['KC', 'KH'])
+
+            const result = finishTurn(game)
+            expect(result.phase).toEqual(TURN)
+        })
+
+        it('should increment phase when last player folds and others have checked', () => {
+            game.phase = FLOP
+            game.players.push({ _id: 'p1', isTurn: true, lastAction: 'Fold' })
+            game.players.push({ _id: 'p2', isTurn: false, hand: ['AS', 'AD'], lastAction: 'Check' })
+            game.players.push({ _id: 'p3', isTurn: false, hand: ['AC', 'AH'], lastAction: 'Check' })
+
+            const result = finishTurn(game)
+            expect(result.phase).toEqual(TURN)
+        })
+
+        it('should increment turn when two players are all-in and third hasnt played yet', () => {
+            game.phase = FLOP
+            game.players.push({ _id: 'p1', isTurn: false, hand: ['KS', 'JD'] })
+            game.players.push({ _id: 'p2', isTurn: false, hand: ['AS', 'AD'], lastAction: 'All-In' })
+            game.players.push({ _id: 'p3', isTurn: true, hand: ['AC', 'AH'], lastAction: 'All-In' })
+            game.lastToRaiseId = 'p3'
+            game.bets = [
+                { playerId: 'p2', amount: 30 },
+                { playerId: 'p3', amount: 50 }
+            ]
+            game.allInHands.push(['AC', 'AH'])
+            game.allInHands.push(['AS', 'AD'])
+
+            const result = finishTurn(game)
+            expect(result.phase).toEqual(FLOP)
+            expect(result.players.find(p => p._id === 'p1').isTurn).toEqual(true)
+        })
     })
 })
