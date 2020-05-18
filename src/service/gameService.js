@@ -119,11 +119,13 @@ const incrementPhase = game => {
 }
 
 const autoIncrementPhase = game => {
+    const timeToWait = game.phase === FLOP ? 4000 : 2250
+
     setTimeout(async () => {
         game = incrementPhase(game)
         await game.save()
         updateAllUsers(game)
-    }, 1500)
+    }, timeToWait)
 }
 
 // we need to auto-increment the phases when everyone is all-in.
