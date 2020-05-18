@@ -19,6 +19,13 @@ const removeHand = player => {
 
 const updateAllUsers = game => {
     game = game.toObject()
+
+    const activePlayers = game.players.filter(p => p.hand)
+    // Only show allInHands when there are no more players betting.
+    if (activePlayers.length !== game.allInHands.length) {
+        game.allInHands = []
+    }
+
     const connectedSockets = Object.keys(io.in(game._id).sockets)
 
     connectedSockets.forEach(socketId => {
