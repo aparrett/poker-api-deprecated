@@ -98,6 +98,7 @@ const incrementPhase = game => {
     game.lastToRaiseId = undefined
 
     game = reconcileAllIns(game)
+
     if (shouldAutoIncrementPhase(game)) {
         autoIncrementPhase(game)
     } else {
@@ -124,7 +125,6 @@ const shouldAutoIncrementPhase = game => {
     return game.allInHands.length > 0 && playersWithHands.length === game.allInHands.length
 }
 
-// TODO: add automated tests for this function.
 const reconcileAllIns = game => {
     const allInCount = game.allInHands.length
     if (allInCount === 0) {

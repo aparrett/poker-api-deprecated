@@ -382,4 +382,45 @@ describe('gameService', () => {
             expect(result.players.find(p => p._id === 'p1').isTurn).toEqual(true)
         })
     })
+
+    describe('reconcileAllIns', () => {
+        it('put remaining players hand in allInHands when only one player is not all-in', () => {
+            game.phase = FLOP
+            game.players.push({ _id: 'p1', isTurn: true, hand: ['KS', 'JD'], lastAction: 'Raise' })
+            game.players.push({ _id: 'p2', isTurn: false, hand: ['AS', 'AD'], lastAction: 'All-In' })
+            game.players.push({ _id: 'p3', isTurn: false, hand: ['AC', 'AH'], lastAction: 'All-In' })
+            game.lastToRaiseId = 'p1'
+            game.bets = [
+                { playerId: 'p1', amount: 50 },
+                { playerId: 'p2', amount: 30 }, // all-in for less
+                { playerId: 'p3', amount: 50 }
+            ]
+            game.allInHands.push(['AC', 'AH'])
+            game.allInHands.push(['AS', 'AD'])
+
+            const result = finishTurn(game)
+            expect(result.allInHands.length).toEqual(3)
+        })
+
+        it('when all players go all-in the player with the highest chip count only has to cover the second highest all-in', () => {
+            game.phase = FLOP
+            game.players.push({ _id: 'p1', isTurn: false, hand: ['KS', 'JD'], lastAction: 'Raise', chips: 100 })
+            game.players.push({ _id: 'p2', isTurn: false, hand: ['AS', 'AD'], lastAction: 'All-In' })
+            game.players.push({ _id: 'p3', isTurn: true, hand: ['AC', 'AH'], lastAction: 'All-In' })
+            game.lastToRaiseId = 'p1'
+            game.pot = 200
+            game.bets = [
+                { playerId: 'p1', amount: 100 },
+                { playerId: 'p2', amount: 30 }, // all-in for less
+                { playerId: 'p3', amount: 50 }
+            ]
+            game.allInHands.push(['AC', 'AH'])
+            game.allInHands.push(['AS', 'AD'])
+            game.allInHands.push(['KS', 'KD'])
+
+            const result = finishTurn(game)
+            expect(result.pot).toEqual(150)
+            expect(result.players[0].chips).toEqual(150)
+        })
+    })
 })
