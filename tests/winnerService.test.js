@@ -782,4 +782,18 @@ describe('winnerService', () => {
             expect(getWinningOrder(hands, communityCards)).toEqual(expected)
         })
     })
+
+    describe('distributeChipToWinners', () => {
+        it('distribute to one winner', () => {})
+
+        it('distribute to two winners', () => {})
+
+        it('distribute to two winners - tie', () => {})
+
+        it('three ties', () => {})
+
+        it('distribute to three winners', () => {})
+
+        it('distribute to three winners - tie', () => {})
+    })
 })

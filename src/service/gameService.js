@@ -105,6 +105,7 @@ const incrementPhase = game => {
     game.lastToRaiseId = undefined
 
     game = reconcileAllIns(game)
+    game = addSidePots(game)
 
     if (shouldAutoIncrementPhase(game)) {
         autoIncrementPhase(game)
@@ -174,6 +175,33 @@ const reconcileAllIns = game => {
             }
         }
     }
+
+    return game
+}
+
+const addSidePots = game => {
+    if (game.bets.length === 0 || game.allInHands.length === 0 || game.players.filter(p => p.hand).length === 2) {
+        return game
+    }
+
+    const totalBets = game.bets.reduce((acc, bet) => acc + bet.amount, 0)
+
+    game.players
+        .filter(p => p.lastAction === 'All-In')
+        .forEach(p => {
+            const existingSidePot = game.sidePots.find(sidePot => sidePot.playerId.toString() === p._id.toString())
+            if (existingSidePot) {
+                return
+            }
+            const playerBet = game.bets.find(b => b.playerId.toString() === p._id.toString()).amount
+            const contributions = game.bets.reduce((acc, bet) => {
+                const amount = playerBet > bet.amount ? bet.amount : playerBet
+                return acc + amount
+            }, 0)
+
+            const amount = game.pot - totalBets + contributions
+            game.sidePots.push({ playerId: p._id, amount })
+        })
 
     return game
 }
@@ -329,5 +357,6 @@ module.exports = {
     resetGame,
     removeHand,
     reconcileAllIns,
-    autoIncrementPhase
+    autoIncrementPhase,
+    addSidePots
 }

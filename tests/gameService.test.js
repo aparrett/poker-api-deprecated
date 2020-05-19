@@ -1,4 +1,4 @@
-const { incrementTurn, incrementPhase, finishTurn } = require('../src/service/gameService')
+const { incrementTurn, incrementPhase, finishTurn, addSidePots } = require('../src/service/gameService')
 const { PREFLOP, FLOP, TURN, RIVER, DECK } = require('../src/constants')
 
 const winnerService = require('../src/service/winnerService')
@@ -17,7 +17,8 @@ describe('gameService', () => {
             deck: DECK,
             playersWaiting: [],
             bets: [],
-            allInHands: []
+            allInHands: [],
+            sidePots: []
         }
         // this is a workaround for the fact that a Mongoose filter returns an array with the set
         // method but in the tests we don't have a Mongoose array filter. This can be removed
@@ -428,6 +429,102 @@ describe('gameService', () => {
             const result = finishTurn(game)
             expect(result.pot).toEqual(150)
             expect(result.players[0].chips).toEqual(150)
+        })
+    })
+
+    describe('addSidePots', () => {
+        it('should not add any when there are no bets', () => {
+            game.players.push({ _id: 'p1', isTurn: true, hand: ['KS', 'JD'], lastAction: 'Check' })
+            game.players.push({ _id: 'p2', isTurn: false, hand: ['AS', 'AD'], lastAction: 'Check' })
+
+            const result = finishTurn(game)
+            expect(result.sidePots.length).toEqual(0)
+        })
+
+        it('should not add any when nobody is all in', () => {
+            game.players.push({ _id: 'p1', isTurn: true, hand: ['KS', 'JD'], lastAction: 'Call' })
+            game.players.push({ _id: 'p2', isTurn: false, hand: ['AS', 'AD'], lastAction: 'Raise' })
+            game.bets = [
+                { playerId: 'p1', amount: 20 },
+                { playerId: 'p2', amount: 20 }
+            ]
+            const result = finishTurn(game)
+            expect(result.sidePots.length).toEqual(0)
+        })
+
+        it('should not add a side pot if there are only two remaining players', () => {
+            game.players.push({ _id: 'p1', isTurn: true, hand: ['KS', 'JD'], lastAction: 'Call' })
+            game.players.push({ _id: 'p2', isTurn: false, hand: ['AS', 'AD'], lastAction: 'All-In' })
+            game.allInHands.push({ playerId: 'p2', hand: ['AS', 'AD'] })
+            game.bets = [
+                { playerId: 'p1', amount: 20 },
+                { playerId: 'p2', amount: 20 }
+            ]
+
+            const result = addSidePots(game)
+            expect(result.sidePots.length).toEqual(0)
+        })
+
+        it('should add one side pot', () => {
+            game.players.push({ _id: 'p1', isTurn: true, hand: ['KS', 'JD'], lastAction: 'Call' })
+            game.players.push({ _id: 'p2', isTurn: false, hand: ['AS', 'AD'], lastAction: 'All-In' })
+            game.players.push({ _id: 'p3', isTurn: false, hand: ['JS', 'TD'], lastAction: 'Call' })
+
+            game.allInHands.push({ playerId: 'p2', hand: ['AS', 'AD'] })
+            game.bets = [
+                { playerId: 'p1', amount: 20 },
+                { playerId: 'p2', amount: 20 },
+                { playerId: 'p3', amount: 20 }
+            ]
+            game.pot = 90
+
+            const result = addSidePots(game)
+            expect(result.sidePots.length).toEqual(1)
+            expect(result.sidePots[0]).toEqual({ playerId: 'p2', amount: 90 })
+        })
+
+        it('should add multiple side pots', () => {
+            game.players.push({ _id: 'p1', isTurn: true, hand: ['KS', 'JD'], lastAction: 'Call' })
+            game.players.push({ _id: 'p2', isTurn: false, hand: ['AS', 'AD'], lastAction: 'All-In' })
+            game.players.push({ _id: 'p3', isTurn: false, hand: ['JS', 'TD'], lastAction: 'All-In' })
+            game.players.push({ _id: 'p4', isTurn: false, hand: ['8S', '8D'], lastAction: 'All-In' })
+
+            game.allInHands.push({ playerId: 'p2', hand: ['AS', 'AD'] })
+            game.allInHands.push({ playerId: 'p3', hand: ['JS', 'TD'] })
+            game.allInHands.push({ playerId: 'p4', hand: ['8S', '8D'] })
+            game.bets = [
+                { playerId: 'p1', amount: 40 },
+                { playerId: 'p2', amount: 20 },
+                { playerId: 'p3', amount: 30 },
+                { playerId: 'p4', amount: 40 }
+            ]
+            game.pot = 150
+
+            const result = addSidePots(game)
+
+            expect(result.sidePots.length).toEqual(3)
+            expect(result.sidePots[0]).toEqual({ playerId: 'p2', amount: 100 })
+            expect(result.sidePots[1]).toEqual({ playerId: 'p3', amount: 130 })
+            expect(result.sidePots[2]).toEqual({ playerId: 'p4', amount: 150 })
+        })
+
+        it('should not add duplicate if one exists already', () => {
+            game.players.push({ _id: 'p1', isTurn: true, hand: ['KS', 'JD'], lastAction: 'Call' })
+            game.players.push({ _id: 'p2', isTurn: false, hand: ['AS', 'AD'], lastAction: 'All-In' })
+            game.players.push({ _id: 'p3', isTurn: false, hand: ['JS', 'TD'], lastAction: 'Raise' })
+
+            game.allInHands.push({ playerId: 'p2', hand: ['AS', 'AD'] })
+            game.bets = [
+                { playerId: 'p1', amount: 20 },
+                { playerId: 'p3', amount: 20 }
+            ]
+            game.pot = 90
+            game.sidePots = [{ playerId: 'p2', amount: 90 }]
+
+            const result = addSidePots(game)
+
+            expect(result.sidePots.length).toEqual(1)
+            expect(result.sidePots[0]).toEqual({ playerId: 'p2', amount: 90 })
         })
     })
 })

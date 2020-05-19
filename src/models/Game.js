@@ -70,6 +70,11 @@ const gameSchema = new mongoose.Schema({
         type: Array,
         required: true,
         default: []
+    },
+    sidePots: {
+        type: Array,
+        required: true,
+        default: []
     }
 })
 
