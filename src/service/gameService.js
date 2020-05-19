@@ -119,6 +119,9 @@ const incrementPhase = game => {
 }
 
 const autoIncrementPhase = game => {
+    // Since we are auto-incrementing phases there is no need for any player to have a turn.
+    game.players.forEach(p => (p.isTurn = false))
+
     const timeToWait = game.phase === FLOP ? 4000 : 2250
 
     setTimeout(async () => {

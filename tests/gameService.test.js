@@ -25,6 +25,10 @@ describe('gameService', () => {
         Array.prototype.set = (index, player) => (game.players[index] = player)
     })
 
+    afterEach(() => {
+        Array.prototype.set = undefined
+    })
+
     describe('incrementTurn', () => {
         it('should move the turn from player 0 to 1', () => {
             game.players.push({ isTurn: true, hand: ['AS', 'AD'] })
