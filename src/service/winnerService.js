@@ -1,51 +1,70 @@
 const { strengthValues, FACES } = require('../constants')
 const { decryptHand } = require('./encryptionService')
 
-const getWinners = game => {
-    const remainingPlayers = game.players.filter(player => player.hand)
-
-    let winners = []
-    if (remainingPlayers.length === 1) {
-        winners.push(remainingPlayers[0])
-    } else {
-        const remainingHands = remainingPlayers.map(player => decryptHand(player.hand))
-        const winningOrder = getWinningOrder(remainingHands, game.communityCards)
-
-        if (typeof winningOrder[0][0] === 'string') {
-            const winner = remainingPlayers.find(
-                player =>
-                    decryptHand(player.hand)[0][0] === winningOrder[0][0][0] &&
-                    decryptHand(player.hand)[0][1] === winningOrder[0][0][1]
-            )
-
-            winners.push(winner)
-        } else {
-            winners = winningOrder[0].map(hand =>
-                remainingPlayers.find(
-                    player =>
-                        decryptHand(player.hand)[0][0] === hand[0][0] && decryptHand(player.hand)[0][1] === hand[0][1]
-                )
-            )
+const sortHandRankTiesBySidepotAsc = (game, handRanks) => {
+    handRanks.forEach(handRank => {
+        // row is not a tie
+        if (typeof handRank[0] === 'string') {
+            return
         }
-    }
 
-    return winners
+        handRank.sort()
+    })
+    return handRanks
 }
 
-const distributeChipsToWinners = (game, winners) => {
-    winners.forEach(winner => {
-        const winnerIndex = game.players.findIndex(player => player._id === winner._id)
-        const chipsWon = Math.round(game.pot / winners.length)
-        winner.chips += chipsWon
-        game.players.set(winnerIndex, winner)
+const getPlayerByHand = (player, hand) =>
+    player.hand && decryptHand(player.hand)[0][0] === hand[0] && decryptHand(player.hand)[0][1] === hand[1]
 
-        console.log(`Giving player ${game.players[winnerIndex].name} ${chipsWon} chips`)
-    })
+const distributeChipsToWinners = (game, handRanks) => {
+    const nextWinningRow = handRanks[0]
+    let hand
 
+    // not a tie
+    if (typeof nextWinningRow[0] === 'string') {
+        hand = nextWinningRow
+    } else {
+        // tie
+        nextWinningRow.sort((hand1, hand2) => {
+            const player1Id = game.players.find(player => getPlayerByHand(player, hand1))._id
+            const player2Id = game.players.find(player => getPlayerByHand(player, hand2))._id
+            const sidePot1 = game.sidePots.find(sidePot => sidePot.playerId.toString() === player1Id.toString())
+            const sidePot2 = game.sidePots.find(sidePot => sidePot.playerId.toString() === player2Id.toString())
+            return sidePot1 - sidePot2
+        })
+
+        hand = nextWinningRow[0]
+    }
+
+    // const playerIndex = game.players.findIndex(player => getPlayerByHand(player, hand))
+    // const sidePot =
+
+    // start with smallest sidePot in ties.
+
+    // winner has side pot?
+    // no, give all winnings
+    // yes,
+    // give side pot,
+    // get rid of smaller side pots, and winners with those side pots
+    // if any remaining winners, start over
+
+    // winner is tie?
+    // one side pot, one other
+    // split side pot
+    // other player gets the rest
+    // both side pots
+    // equal side pot amounts, then split (same as next line)
+    // split the smaller pot, bigger pot gets theirSidePot - smallerPot
+    // remove chips from pot, any side pots lesser than the bigger pot, and related side pot playerIds
     return game
 }
 
-const getWinningOrder = (hands, communityCards) => {
+// Returns all of the hands in the game from Highest rank to Lowest. Ties are inserted as
+// an array of hands.
+const getHandRanks = game => {
+    const { communityCards } = game
+    const remainingPlayers = game.players.filter(player => player.hand)
+    const hands = remainingPlayers.map(player => decryptHand(player.hand))
     const sortedHandGroups = groupAndSortHandsByHandTypeStrength(hands, communityCards)
     const winningOrder = []
 
@@ -553,7 +572,6 @@ module.exports = {
     determineBetterHand,
     hasStraight,
     groupAndSortHandsByHandTypeStrength,
-    getWinningOrder,
-    distributeChipsToWinners,
-    getWinners
+    getHandRanks,
+    distributeChipsToWinners
 }

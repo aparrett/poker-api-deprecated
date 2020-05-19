@@ -2,7 +2,7 @@ const {
     determineBetterHand,
     hasStraight,
     groupAndSortHandsByHandTypeStrength,
-    getWinningOrder
+    getHandRanks
 } = require('../src/service/winnerService')
 
 // Used to verify the same result given the hands in opposite order.
@@ -588,7 +588,7 @@ describe('winnerService', () => {
         })
     })
 
-    describe('getWinningOrder', () => {
+    describe('getHandRanks', () => {
         it('should return the appropriate winning order - 1', () => {
             const hands = [
                 ['KD', 'KC'], // two pair
@@ -603,7 +603,7 @@ describe('winnerService', () => {
                 ['KD', 'KC'], // two pair
                 ['QD', 'QC'] // two pair
             ]
-            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(hands, communityCards)).toEqual(expected)
         })
 
         it('should return the appropriate winning order - 2', () => {
@@ -626,7 +626,7 @@ describe('winnerService', () => {
                 ['5D', '8C'],
                 ['AC', 'JH']
             ]
-            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(hands, communityCards)).toEqual(expected)
         })
 
         it('should return the appropriate winning order - 3', () => {
@@ -645,7 +645,7 @@ describe('winnerService', () => {
                     ['KH', 'KS']
                 ]
             ]
-            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(hands, communityCards)).toEqual(expected)
         })
 
         it('should return the appropriate winning order - 4', () => {
@@ -668,7 +668,7 @@ describe('winnerService', () => {
                 ],
                 ['2C', '3S']
             ]
-            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(hands, communityCards)).toEqual(expected)
         })
 
         it('should return the appropriate winning order - 5', () => {
@@ -691,7 +691,7 @@ describe('winnerService', () => {
                     ['2C', '3S']
                 ]
             ]
-            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(hands, communityCards)).toEqual(expected)
         })
 
         it('should return the appropriate winning order - 5', () => {
@@ -714,7 +714,7 @@ describe('winnerService', () => {
                     ['KH', 'KS']
                 ]
             ]
-            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(hands, communityCards)).toEqual(expected)
         })
 
         it('should return the appropriate winning order - 6', () => {
@@ -731,7 +731,7 @@ describe('winnerService', () => {
                 ['KD', '2C'],
                 ['QC', '2H']
             ]
-            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(hands, communityCards)).toEqual(expected)
         })
 
         it('should return the appropriate winning order - 7', () => {
@@ -750,7 +750,7 @@ describe('winnerService', () => {
                     ['KD', '2C']
                 ]
             ]
-            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(hands, communityCards)).toEqual(expected)
         })
 
         it('should return the appropriate winning order - 8', () => {
@@ -779,7 +779,7 @@ describe('winnerService', () => {
                     ['KD', '2C'] // high card
                 ]
             ]
-            expect(getWinningOrder(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(hands, communityCards)).toEqual(expected)
         })
     })
 

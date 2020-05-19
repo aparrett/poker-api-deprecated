@@ -1,5 +1,5 @@
 const { PREFLOP, FLOP, TURN, RIVER, phases, DECK } = require('../constants')
-const { distributeChipsToWinners, getWinners } = require('./winnerService')
+const { distributeChipsToWinners, getHandRanks } = require('./winnerService')
 const { encryptCard, decryptHand } = require('./encryptionService')
 
 const getLargestBet = game => {
@@ -217,8 +217,8 @@ const resetActions = game => {
 }
 
 const finishRound = game => {
-    const winners = getWinners(game)
-    game = distributeChipsToWinners(game, winners)
+    const winningHandOrder = getHandRanks(game)
+    game = distributeChipsToWinners(game, winningHandOrder)
     game = removeBankruptPlayers(game)
     game = startNextRound(game)
     return game
