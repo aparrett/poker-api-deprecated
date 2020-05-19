@@ -19,7 +19,10 @@ describe('gameService', () => {
             bets: [],
             allInHands: []
         }
-        game.players.set = (index, player) => (game.players[index] = player)
+        // this is a workaround for the fact that a Mongoose filter returns an array with the set
+        // method but in the tests we don't have a Mongoose array filter. This can be removed
+        // when a workaround for Mongoose Array set is found.
+        Array.prototype.set = (index, player) => (game.players[index] = player)
     })
 
     describe('incrementTurn', () => {
@@ -73,8 +76,8 @@ describe('gameService', () => {
 
         it('should increment the phase itself when on the last phase', () => {
             game.phase = RIVER
-            game.players.push({ isTurn: false, hand: ['AS', 'AD'] })
-            game.players.push({ isTurn: false, hand: ['KS', 'KD'], isDealer: true })
+            game.players.push({ chips: 50, isTurn: false, hand: ['AS', 'AD'] })
+            game.players.push({ chips: 50, isTurn: false, hand: ['KS', 'KD'], isDealer: true })
 
             const result = incrementPhase(game)
 
@@ -308,7 +311,7 @@ describe('gameService', () => {
             game.players.push({ _id: 'p1', isTurn: false, hand: ['KS', 'KD'], lastAction: 'Check' })
             game.players.push({ _id: 'p2', isTurn: false, hand: ['AS', 'AD'], lastAction: 'All-In' })
             game.players.push({ _id: 'p3', isTurn: true, lastAction: 'Fold' })
-            game.allInHands.push(['AS', 'AD'])
+            game.allInHands.push({ hand: ['AS', 'AD'], playerId: 'p2' })
 
             game.lastToRaiseId = 'p2'
             game.bets = [{ playerId: 'p2', amount: 30 }]
@@ -328,8 +331,8 @@ describe('gameService', () => {
                 { playerId: 'p2', amount: 30 },
                 { playerId: 'p3', amount: 50 }
             ]
-            game.allInHands.push(['AC', 'AH'])
-            game.allInHands.push(['AS', 'AD'])
+            game.allInHands.push({ hand: ['AC', 'AH'], playerId: 'p3' })
+            game.allInHands.push({ hand: ['AS', 'AD'], playerId: 'p2' })
 
             const result = finishTurn(game)
             expect(result.phase).toEqual(TURN)
@@ -346,9 +349,9 @@ describe('gameService', () => {
                 { playerId: 'p2', amount: 30 },
                 { playerId: 'p3', amount: 50 }
             ]
-            game.allInHands.push(['AS', 'AD'])
-            game.allInHands.push(['AC', 'AH'])
-            game.allInHands.push(['KC', 'KH'])
+            game.allInHands.push({ hand: ['AS', 'AD'], playerId: 'p2' })
+            game.allInHands.push({ hand: ['AC', 'AH'], playerId: 'p3' })
+            game.allInHands.push({ hand: ['KC', 'KH'], playerId: 'p1' })
 
             const result = finishTurn(game)
             expect(result.phase).toEqual(TURN)
@@ -374,8 +377,8 @@ describe('gameService', () => {
                 { playerId: 'p2', amount: 30 },
                 { playerId: 'p3', amount: 50 }
             ]
-            game.allInHands.push(['AC', 'AH'])
-            game.allInHands.push(['AS', 'AD'])
+            game.allInHands.push({ hand: ['AC', 'AH'], playerId: 'p3' })
+            game.allInHands.push({ hand: ['AS', 'AD'], playerId: 'p2' })
 
             const result = finishTurn(game)
             expect(result.phase).toEqual(FLOP)
@@ -395,8 +398,8 @@ describe('gameService', () => {
                 { playerId: 'p2', amount: 30 }, // all-in for less
                 { playerId: 'p3', amount: 50 }
             ]
-            game.allInHands.push(['AC', 'AH'])
-            game.allInHands.push(['AS', 'AD'])
+            game.allInHands.push({ hand: ['AC', 'AH'], playerId: 'p3' })
+            game.allInHands.push({ hand: ['AS', 'AD'], playerId: 'p2' })
 
             const result = finishTurn(game)
             expect(result.allInHands.length).toEqual(3)
@@ -414,9 +417,9 @@ describe('gameService', () => {
                 { playerId: 'p2', amount: 30 }, // all-in for less
                 { playerId: 'p3', amount: 50 }
             ]
-            game.allInHands.push(['AC', 'AH'])
-            game.allInHands.push(['AS', 'AD'])
-            game.allInHands.push(['KS', 'KD'])
+            game.allInHands.push({ hand: ['AC', 'AH'], playerId: 'p3' })
+            game.allInHands.push({ hand: ['AS', 'AD'], playerId: 'p2' })
+            game.allInHands.push({ hand: ['KS', 'KD'], playerId: 'p1' })
 
             const result = finishTurn(game)
             expect(result.pot).toEqual(150)
