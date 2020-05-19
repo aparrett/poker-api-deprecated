@@ -188,7 +188,13 @@ const resetActions = game => {
 const finishRound = game => {
     const winners = getWinners(game)
     game = distributeChipsToWinners(game, winners)
+    game = removeBankruptPlayers(game)
     game = startNextRound(game)
+    return game
+}
+
+const removeBankruptPlayers = game => {
+    game.players = game.players.filter(p => p.chips > 0)
     return game
 }
 
