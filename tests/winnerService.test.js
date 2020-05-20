@@ -2,8 +2,14 @@ const {
     determineBetterHand,
     hasStraight,
     groupAndSortHandsByHandTypeStrength,
-    getHandRanks
+    getHandRanks,
+    distributeChipsToWinners
 } = require('../src/service/winnerService')
+
+const encryptionService = require('../src/service/encryptionService')
+jest.mock('../src/service/encryptionService')
+
+encryptionService.decryptHand = jest.fn(hand => hand)
 
 // Used to verify the same result given the hands in opposite order.
 const reverseOrder = hands => [hands[1], hands[0]]
@@ -784,9 +790,50 @@ describe('winnerService', () => {
     })
 
     describe('distributeChipToWinners', () => {
-        it('distribute to one winner', () => {})
+        it('distribute to one winner', () => {
+            const game = {
+                players: [
+                    { _id: 'p1', hand: ['AC', 'AD'], chips: 10 },
+                    { _id: 'p2', hand: ['KC', 'KD'], chips: 10 }
+                ],
+                pot: 80,
+                sidePots: []
+            }
 
-        it('distribute to two winners', () => {})
+            const handRanks = [
+                ['AC', 'AD'],
+                ['KC', 'KD']
+            ]
+
+            const result = distributeChipsToWinners(game, handRanks)
+
+            expect(result.pot).toEqual(0)
+            expect(result.players[0].chips).toEqual(90)
+        })
+
+        it('distribute to two winners - sidepot tie', () => {
+            const game = {
+                players: [
+                    { _id: 'p1', hand: ['AC', 'AD'], chips: 0 },
+                    { _id: 'p2', hand: ['AS', 'AH'], chips: 10 }
+                ],
+                pot: 20,
+                sidePots: [{ playerId: 'p1', amount: '20' }]
+            }
+
+            const handRanks = [
+                [
+                    ['AS', 'AH'],
+                    ['AC', 'AD']
+                ]
+            ]
+
+            const result = distributeChipsToWinners(game, handRanks)
+
+            expect(result.pot).toEqual(0)
+            expect(result.players[0].chips).toEqual(10)
+            expect(result.players[1].chips).toEqual(20)
+        })
 
         it('distribute to two winners - tie', () => {})
 

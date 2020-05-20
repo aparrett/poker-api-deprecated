@@ -518,7 +518,7 @@ describe('gameService', () => {
                 { playerId: 'p1', amount: 20 },
                 { playerId: 'p3', amount: 20 }
             ]
-            game.pot = 90
+            game.pot = 130
             game.sidePots = [{ playerId: 'p2', amount: 90 }]
 
             const result = addSidePots(game)
