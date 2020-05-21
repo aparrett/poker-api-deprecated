@@ -12,11 +12,11 @@ const combineData = (game, hand) => {
     return { player, sidePot }
 }
 
-const distributeChipsToWinners = (game, handRanks) => {
-    const expandedHandRanks = handRanks.map(row => {
-        const isTie = typeof row[0] !== 'string'
+const expandAndSortHandRanks = (game, handRanks) => {
+    return handRanks.map(row => {
+        const isTie = row.length > 1
         if (!isTie) {
-            return combineData(game, row)
+            return [combineData(game, row[0])]
         } else {
             rowWithCombinedData = row.map(hand => combineData(game, hand))
             // if there is a tie, sort the hands by smallest sidepot to largest.
@@ -28,24 +28,33 @@ const distributeChipsToWinners = (game, handRanks) => {
                 if (!hand2.sidePot) {
                     return -1
                 }
-                return hand1.sidePot - hand2.sidePot
+                return hand1.sidePot.amount - hand2.sidePot.amount
             })
             return rowWithCombinedData
         }
     })
+}
+
+const distributeChipsToWinners = (game, handRanks) => {
+    const expandedHandRanks = expandAndSortHandRanks(game, handRanks)
 
     let highestSidePot = 0
+
+    // when each sidepot takes their share, that amount must be taken from the amount left in the group of sidepots
+    let amountTakenFromSidepots = 0
+
     for (const row of expandedHandRanks) {
-        if (game.pot === 0) {
+        // The less sign is here because, due to rounding, there could be an extreme edge case where the pot is -1 or -2.
+        if (game.pot <= 0) {
             return game
         }
 
-        const isTie = !row.player
+        const isTie = row.length > 1
 
         if (!isTie) {
-            const { player, sidePot } = row
+            const { player, sidePot } = row[0]
             if (sidePot) {
-                const { amount } = sidePot
+                const amount = sidePot.amount - highestSidePot
                 player.chips += amount
                 game.pot -= amount
                 highestSidePot = amount
@@ -56,12 +65,14 @@ const distributeChipsToWinners = (game, handRanks) => {
             }
         } else {
             let previousSidePot
+
             row.forEach((data, i) => {
-                console.log(data)
                 const { player, sidePot } = data
                 let splitAmount
+
                 if (sidePot) {
                     const { amount } = sidePot
+                    const numerator = amount <= game.pot ? amount : game.pot
 
                     // If a player in a row before this player (better hand) had a higher pot, this player gets nothing.
                     // However, if a player had a better hand but a lower side pot, this player can still win.
@@ -71,21 +82,19 @@ const distributeChipsToWinners = (game, handRanks) => {
                         // If the players have the same sidepot, they should get the same amount
                         if (amount === previousSidePot) {
                             denominator = previousSidePot.index
-                            highestSidePot = amount
+                            splitAmount = Math.round(numerator / denominator)
                         } else {
                             denominator = row.length - i
+                            highestSidePot = amount
                             previousSidePot = { amount, index: i }
+                            splitAmount = Math.round((numerator - amountTakenFromSidepots) / denominator)
                         }
-                        console.log(amount, 'amount', game.pot)
-                        const numerator = amount < game.pot ? amount : game.pot
-                        splitAmount = numerator / denominator
-                        console.log(numerator)
-                        console.log(denominator)
+                        amountTakenFromSidepots += splitAmount
                     }
                 } else {
                     // Because we are subtracting the player's amount each time, this formula allows us
                     // to split the pot evenly between the rest of the players without sidepots
-                    splitAmount = game.pot / (row.length - i)
+                    splitAmount = Math.round(game.pot / (row.length - i))
                 }
 
                 player.chips += splitAmount
@@ -102,13 +111,13 @@ const distributeChipsToWinners = (game, handRanks) => {
 const getHandRanks = game => {
     const { communityCards } = game
     const remainingPlayers = game.players.filter(player => player.hand)
-    const hands = remainingPlayers.map(player => decryptHand(player.hand))
+    const hands = remainingPlayers.map(player => encryptionService.decryptHand(player.hand))
     const sortedHandGroups = groupAndSortHandsByHandTypeStrength(hands, communityCards)
     const winningOrder = []
 
     sortedHandGroups.forEach(handsGroup => {
         if (handsGroup.length === 1) {
-            return winningOrder.push(handsGroup[0])
+            return winningOrder.push([handsGroup[0]])
         }
 
         /**  
@@ -148,7 +157,7 @@ const getHandRanks = game => {
             if (ties) {
                 winningOrder.push([hand, ...ties])
             } else {
-                winningOrder.push(hand)
+                winningOrder.push([hand])
             }
         })
     })

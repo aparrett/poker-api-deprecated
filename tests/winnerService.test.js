@@ -596,97 +596,101 @@ describe('winnerService', () => {
 
     describe('getHandRanks', () => {
         it('should return the appropriate winning order - 1', () => {
-            const hands = [
-                ['KD', 'KC'], // two pair
-                ['AD', 'AC'], // two pair
-                ['QD', 'QC'] // two pair
+            const players = [
+                { hand: ['KD', 'KC'] }, // two pair
+                { hand: ['AD', 'AC'] }, // two pair
+                { hand: ['QD', 'QC'] } // two pair
             ]
-
             const communityCards = ['5D', '5C', 'JC', '8S', '2H']
+            const game = { players, communityCards }
 
             const expected = [
-                ['AD', 'AC'], // two pair
-                ['KD', 'KC'], // two pair
-                ['QD', 'QC'] // two pair
+                [['AD', 'AC']], // two pair
+                [['KD', 'KC']], // two pair
+                [['QD', 'QC']] // two pair
             ]
-            expect(getHandRanks(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(game)).toEqual(expected)
         })
 
         it('should return the appropriate winning order - 2', () => {
-            const hands = [
-                ['JD', 'JS'], // trips
-                ['AS', 'KS'], // straight
-                ['AC', 'JH'], // pair
-                ['TC', 'QC'], // two pair
-                ['9C', '3H'], // straight
-                ['5D', '8C'] // two pair
+            const players = [
+                { hand: ['JD', 'JS'] }, // trips
+                { hand: ['AS', 'KS'] }, // straight
+                { hand: ['AC', 'JH'] }, // pair
+                { hand: ['TC', 'QC'] }, // two pair
+                { hand: ['9C', '3H'] }, // straight
+                { hand: ['5D', '8C'] } // two pair
             ]
 
             const communityCards = ['TD', 'QH', 'JC', '8S', '5H']
+            const game = { players, communityCards }
 
             const expected = [
-                ['AS', 'KS'],
-                ['9C', '3H'],
-                ['JD', 'JS'],
-                ['TC', 'QC'],
-                ['5D', '8C'],
-                ['AC', 'JH']
+                [['AS', 'KS']],
+                [['9C', '3H']],
+                [['JD', 'JS']],
+                [['TC', 'QC']],
+                [['5D', '8C']],
+                [['AC', 'JH']]
             ]
-            expect(getHandRanks(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(game)).toEqual(expected)
         })
 
         it('should return the appropriate winning order - 3', () => {
-            const hands = [
-                ['KD', 'KC'], // two pair
-                ['AD', 'AC'], // two pair
-                ['KH', 'KS'] // two pair
+            const players = [
+                { hand: ['KD', 'KC'] }, // two pair
+                { hand: ['AD', 'AC'] }, // two pair
+                { hand: ['KH', 'KS'] } // two pair
             ]
 
             const communityCards = ['5D', '5C', 'JC', '8S', '2H']
+            const game = { players, communityCards }
 
             const expected = [
-                ['AD', 'AC'],
+                [['AD', 'AC']],
                 [
                     ['KD', 'KC'],
                     ['KH', 'KS']
                 ]
             ]
-            expect(getHandRanks(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(game)).toEqual(expected)
         })
 
         it('should return the appropriate winning order - 4', () => {
-            const hands = [
-                ['5S', '6C'], // trips
-                ['KD', 'KC'], // two pair
-                ['AD', 'AC'], // two pair
-                ['KH', 'KS'], // two pair
-                ['2C', '3S'] // one pair
+            const players = [
+                { hand: ['5S', '6C'] }, // trips
+                { hand: ['KD', 'KC'] }, // two pair
+                { hand: ['AD', 'AC'] }, // two pair
+                { hand: ['KH', 'KS'] }, // two pair
+                { hand: ['2C', '3S'] } // one pair
             ]
 
             const communityCards = ['5D', '5C', 'JC', '8S', '2H']
+            const game = { players, communityCards }
 
             const expected = [
-                ['5S', '6C'],
-                ['AD', 'AC'],
+                [['5S', '6C']],
+                [['AD', 'AC']],
                 [
                     ['KD', 'KC'],
                     ['KH', 'KS']
                 ],
-                ['2C', '3S']
+                [['2C', '3S']]
             ]
-            expect(getHandRanks(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(game)).toEqual(expected)
         })
 
         it('should return the appropriate winning order - 5', () => {
-            const hands = [
-                ['AS', 'AH'],
-                ['KD', 'KC'],
-                ['AD', 'AC'],
-                ['KH', 'KS'],
-                ['2C', '3S']
+            const players = [
+                { hand: ['AS', 'AH'] },
+                { hand: ['KD', 'KC'] },
+                { hand: ['AD', 'AC'] },
+                { hand: ['KH', 'KS'] },
+                { hand: ['2C', '3S'] }
             ]
 
             const communityCards = ['TD', '9C', 'JC', '8S', '7H'] // straight
+            const game = { players, communityCards }
 
             const expected = [
                 [
@@ -697,22 +701,23 @@ describe('winnerService', () => {
                     ['2C', '3S']
                 ]
             ]
-            expect(getHandRanks(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(game)).toEqual(expected)
         })
 
         it('should return the appropriate winning order - 5', () => {
-            const hands = [
-                ['AS', 'AH'],
-                ['KD', 'KC'],
-                ['QC', 'QS'], // higher straight
-                ['AD', 'AC'],
-                ['KH', 'KS']
+            const players = [
+                { hand: ['AS', 'AH'] },
+                { hand: ['KD', 'KC'] },
+                { hand: ['QC', 'QS'] }, // higher straight
+                { hand: ['AD', 'AC'] },
+                { hand: ['KH', 'KS'] }
             ]
 
             const communityCards = ['TD', '9C', 'JC', '8S', '7H'] // straight
+            const game = { players, communityCards }
 
             const expected = [
-                ['QC', 'QS'],
+                [['QC', 'QS']],
                 [
                     ['AS', 'AH'],
                     ['KD', 'KC'],
@@ -720,56 +725,55 @@ describe('winnerService', () => {
                     ['KH', 'KS']
                 ]
             ]
-            expect(getHandRanks(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(game)).toEqual(expected)
         })
 
         it('should return the appropriate winning order - 6', () => {
-            const hands = [
-                ['QC', '2H'], // high card
-                ['KD', '2C'], // higher high card
-                ['AS', 'AH'] // pair
+            const players = [
+                { hand: ['QC', '2H'] }, // high card
+                { hand: ['KD', '2C'] }, // higher high card
+                { hand: ['AS', 'AH'] } // pair
             ]
 
             const communityCards = ['TD', '8C', '4C', '3S', 'JH']
+            const game = { players, communityCards }
 
-            const expected = [
-                ['AS', 'AH'],
-                ['KD', '2C'],
-                ['QC', '2H']
-            ]
-            expect(getHandRanks(hands, communityCards)).toEqual(expected)
+            const expected = [[['AS', 'AH']], [['KD', '2C']], [['QC', '2H']]]
+            expect(getHandRanks(game)).toEqual(expected)
         })
 
         it('should return the appropriate winning order - 7', () => {
-            const hands = [
-                ['KC', '2H'], // high card
-                ['KD', '2C'], // high card
-                ['AS', 'AH'] // pair
+            const players = [
+                { hand: ['KC', '2H'] }, // high card
+                { hand: ['KD', '2C'] }, // high card
+                { hand: ['AS', 'AH'] } // pair
             ]
 
             const communityCards = ['TD', '8C', '4C', '3S', 'JH']
+            const game = { players, communityCards }
 
             const expected = [
-                ['AS', 'AH'],
+                [['AS', 'AH']],
                 [
                     ['KC', '2H'],
                     ['KD', '2C']
                 ]
             ]
-            expect(getHandRanks(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(game)).toEqual(expected)
         })
 
         it('should return the appropriate winning order - 8', () => {
-            const hands = [
-                ['KC', '2H'], // high card
-                ['TC', '8D'], // two pair
-                ['AS', 'AH'], // pair
-                ['KD', '2C'], // high card
-                ['AC', 'AD'], // pair
-                ['TH', '8H'] // two pair
+            const players = [
+                { hand: ['KC', '2H'] }, // high card
+                { hand: ['TC', '8D'] }, // two pair
+                { hand: ['AS', 'AH'] }, // pair
+                { hand: ['KD', '2C'] }, // high card
+                { hand: ['AC', 'AD'] }, // pair
+                { hand: ['TH', '8H'] } // two pair
             ]
 
             const communityCards = ['TD', '8C', '4C', '3S', 'JH']
+            const game = { players, communityCards }
 
             const expected = [
                 [
@@ -785,7 +789,7 @@ describe('winnerService', () => {
                     ['KD', '2C'] // high card
                 ]
             ]
-            expect(getHandRanks(hands, communityCards)).toEqual(expected)
+            expect(getHandRanks(game)).toEqual(expected)
         })
     })
 
@@ -800,10 +804,7 @@ describe('winnerService', () => {
                 sidePots: []
             }
 
-            const handRanks = [
-                ['AC', 'AD'],
-                ['KC', 'KD']
-            ]
+            const handRanks = [[['AC', 'AD']], [['KC', 'KD']]]
 
             const result = distributeChipsToWinners(game, handRanks)
 
@@ -818,7 +819,7 @@ describe('winnerService', () => {
                     { _id: 'p2', hand: ['AS', 'AH'], chips: 10 }
                 ],
                 pot: 20,
-                sidePots: [{ playerId: 'p1', amount: '20' }]
+                sidePots: [{ playerId: 'p1', amount: 20 }]
             }
 
             const handRanks = [
@@ -835,12 +836,237 @@ describe('winnerService', () => {
             expect(result.players[1].chips).toEqual(20)
         })
 
-        it('distribute to two winners - tie', () => {})
+        it('distribute to two winners - tie', () => {
+            const game = {
+                players: [
+                    { _id: 'p1', hand: ['AC', 'AD'], chips: 10 },
+                    { _id: 'p2', hand: ['AS', 'AH'], chips: 10 }
+                ],
+                pot: 20,
+                sidePots: []
+            }
 
-        it('three ties', () => {})
+            const handRanks = [
+                [
+                    ['AS', 'AH'],
+                    ['AC', 'AD']
+                ]
+            ]
 
-        it('distribute to three winners', () => {})
+            const result = distributeChipsToWinners(game, handRanks)
 
-        it('distribute to three winners - tie', () => {})
+            expect(result.pot).toEqual(0)
+            expect(result.players[0].chips).toEqual(20)
+            expect(result.players[1].chips).toEqual(20)
+        })
+
+        it('three way tie- no sidepot', () => {
+            const game = {
+                players: [
+                    { _id: 'p1', hand: ['AC', '9C'], chips: 10 },
+                    { _id: 'p2', hand: ['AS', '9S'], chips: 10 },
+                    { _id: 'p3', hand: ['AH', '9H'], chips: 10 }
+                ],
+                pot: 30,
+                sidePots: []
+            }
+
+            const handRanks = [
+                [
+                    ['AC', '9C'],
+                    ['AS', '9S'],
+                    ['AH', '9H']
+                ]
+            ]
+
+            const result = distributeChipsToWinners(game, handRanks)
+
+            expect(result.pot).toEqual(0)
+            expect(result.players[0].chips).toEqual(20)
+            expect(result.players[1].chips).toEqual(20)
+            expect(result.players[2].chips).toEqual(20)
+        })
+
+        // when everyone ties they should get their chips back.
+        it('distribute to three winners - 3 way tie side pot', () => {
+            const game = {
+                players: [
+                    { _id: 'p1', hand: ['AC', '9C'], chips: 0 }, // put in 5
+                    { _id: 'p2', hand: ['AS', '9S'], chips: 10 }, // put in 10
+                    { _id: 'p3', hand: ['AH', '9H'], chips: 10 } // put in 10
+                ],
+                pot: 25,
+                sidePots: [{ playerId: 'p1', amount: 15 }]
+            }
+
+            const handRanks = [
+                [
+                    ['AC', '9C'],
+                    ['AS', '9S'],
+                    ['AH', '9H']
+                ]
+            ]
+
+            const result = distributeChipsToWinners(game, handRanks)
+
+            expect(result.pot).toEqual(0)
+            expect(result.players[0].chips).toEqual(5) // won 5
+            expect(result.players[1].chips).toEqual(20) // won 10
+            expect(result.players[2].chips).toEqual(20) // won 10
+        })
+
+        it('winner has sidepot, second and third place tie', () => {
+            const game = {
+                players: [
+                    { _id: 'p1', hand: ['AC', '9C'], chips: 0 }, // put in 5
+                    { _id: 'p2', hand: ['AS', '9S'], chips: 10 }, // put in 10
+                    { _id: 'p3', hand: ['AH', '9H'], chips: 10 } // put in 10
+                ],
+                pot: 25,
+                sidePots: [{ playerId: 'p1', amount: 15 }]
+            }
+
+            const handRanks = [
+                [['AC', '9C']],
+                [
+                    ['AS', '9S'],
+                    ['AH', '9H']
+                ]
+            ]
+
+            const result = distributeChipsToWinners(game, handRanks)
+
+            expect(result.pot).toEqual(0)
+            expect(result.players[0].chips).toEqual(15) // won 15
+            expect(result.players[1].chips).toEqual(15) // won 5
+            expect(result.players[2].chips).toEqual(15) // won 5
+        })
+
+        it('multiple side pots - basic', () => {
+            const game = {
+                players: [
+                    { _id: 'p1', hand: ['AC', '9C'], chips: 0 }, // put in 5
+                    { _id: 'p2', hand: ['AS', '9S'], chips: 0 }, // put in 10
+                    { _id: 'p3', hand: ['AH', '9H'], chips: 10 } // put in 10
+                ],
+                pot: 25,
+                sidePots: [
+                    { playerId: 'p1', amount: 15 },
+                    { playerId: 'p2', amount: 25 }
+                ]
+            }
+
+            const handRanks = [[['AC', '9C']], [['AS', '9S']], [['AH', '9H']]]
+
+            const result = distributeChipsToWinners(game, handRanks)
+
+            expect(result.pot).toEqual(0)
+            expect(result.players[0].chips).toEqual(15) // won 15
+            expect(result.players[1].chips).toEqual(10) // won 10
+            expect(result.players[2].chips).toEqual(10) // won 0
+        })
+
+        it('two side pots tie, another sidepot, then winner', () => {
+            const game = {
+                players: [
+                    { _id: 'p1', hand: ['AC', '9C'], chips: 0 }, // put in 5
+                    { _id: 'p2', hand: ['AS', '9S'], chips: 0 }, // put in 10
+                    { _id: 'p3', hand: ['KH', '9H'], chips: 0 }, // put in 15
+                    { _id: 'p4', hand: ['JH', '7C'], chips: 10 }, // put in 20
+                    { _id: 'p5', hand: ['TH', '7H'], chips: 10 } // put in 20
+                ],
+                pot: 70,
+                sidePots: [
+                    { playerId: 'p1', amount: 25 },
+                    { playerId: 'p2', amount: 45 },
+                    { playerId: 'p3', amount: 60 }
+                ]
+            }
+
+            const handRanks = [
+                [
+                    ['AS', '9S'],
+                    ['AC', '9C']
+                ],
+                [['KH', '9H']],
+                [['JH', '7C']],
+                [['TH', '7H']]
+            ]
+
+            const result = distributeChipsToWinners(game, handRanks)
+
+            expect(result.pot).toEqual(0)
+            expect(result.players[0].chips).toEqual(13) // won 13 (12.5)
+            expect(result.players[1].chips).toEqual(32) // won 32
+            expect(result.players[2].chips).toEqual(15) // won 15
+            expect(result.players[3].chips).toEqual(20) // won 10
+            expect(result.players[4].chips).toEqual(10) // won 0
+        })
+
+        it('same side pot, 3 way tie', () => {
+            const game = {
+                players: [
+                    { _id: 'p1', hand: ['AC', '9C'], chips: 0 }, // put in 5
+                    { _id: 'p2', hand: ['AS', '9S'], chips: 0 }, // put in 5
+                    { _id: 'p3', hand: ['KH', '9H'], chips: 10 }, // put in 10
+                    { _id: 'p4', hand: ['JH', '7C'], chips: 10 } // put in 10
+                ],
+                pot: 30,
+                sidePots: [
+                    { playerId: 'p1', amount: 20 },
+                    { playerId: 'p2', amount: 20 }
+                ]
+            }
+
+            const handRanks = [
+                [
+                    ['AS', '9S'],
+                    ['AC', '9C'],
+                    ['KH', '9H']
+                ],
+                [['JH', '7C']]
+            ]
+
+            const result = distributeChipsToWinners(game, handRanks)
+
+            expect(result.pot).toEqual(0)
+            expect(result.players[0].chips).toEqual(7) // won 7
+            expect(result.players[1].chips).toEqual(7) // won 7
+            expect(result.players[2].chips).toEqual(26) // won 16
+            expect(result.players[3].chips).toEqual(10) // won 0
+        })
+
+        it('same side pot, 2 way tie', () => {
+            const game = {
+                players: [
+                    { _id: 'p1', hand: ['AC', '9C'], chips: 0 }, // put in 5
+                    { _id: 'p2', hand: ['AS', '9S'], chips: 0 }, // put in 5
+                    { _id: 'p3', hand: ['KH', '9H'], chips: 10 }, // put in 10
+                    { _id: 'p4', hand: ['JH', '7C'], chips: 10 } // put in 10
+                ],
+                pot: 30,
+                sidePots: [
+                    { playerId: 'p1', amount: 20 },
+                    { playerId: 'p2', amount: 20 }
+                ]
+            }
+
+            const handRanks = [
+                [
+                    ['AS', '9S'],
+                    ['AC', '9C']
+                ],
+                [['KH', '9H']],
+                [['JH', '7C']]
+            ]
+
+            const result = distributeChipsToWinners(game, handRanks)
+
+            expect(result.pot).toEqual(0)
+            expect(result.players[0].chips).toEqual(10) // won 10
+            expect(result.players[1].chips).toEqual(10) // won 10
+            expect(result.players[2].chips).toEqual(20) // won 10
+            expect(result.players[3].chips).toEqual(10) // won 0
+        })
     })
 })
