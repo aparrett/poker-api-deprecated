@@ -325,6 +325,7 @@ const resetGame = game => {
     game.communityCards = []
     game.phase = PREFLOP
     game.allInHands = []
+    game.sidePots = []
 
     game.players.forEach((player, i) => {
         player.isTurn = false
