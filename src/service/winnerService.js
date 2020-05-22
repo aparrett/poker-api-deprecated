@@ -9,7 +9,7 @@ const getPlayerByHand = (player, hand) =>
 const combineData = (game, hand) => {
     const player = game.players.find(player => getPlayerByHand(player, hand))
     const sidePot = game.sidePots.find(sidePot => sidePot.playerId.toString() === player._id.toString())
-    return { player, sidePot }
+    return { player, sidePot, hand }
 }
 
 const expandAndSortHandRanks = (game, handRanks) => {
@@ -38,6 +38,9 @@ const expandAndSortHandRanks = (game, handRanks) => {
 const distributeChipsToWinners = (game, handRanks) => {
     const expandedHandRanks = expandAndSortHandRanks(game, handRanks)
 
+    // resets winners from the last round.
+    game.winners = []
+
     let highestSidePot = 0
 
     // when each sidepot takes their share, that amount must be taken from the amount left in the group of sidepots
@@ -52,14 +55,16 @@ const distributeChipsToWinners = (game, handRanks) => {
         const isTie = row.length > 1
 
         if (!isTie) {
-            const { player, sidePot } = row[0]
+            const { player, sidePot, hand } = row[0]
             if (sidePot) {
                 const amount = sidePot.amount - highestSidePot
                 player.chips += amount
                 game.pot -= amount
                 highestSidePot = amount
+                game.winners.push({ playerId: player._id, amount, hand })
             } else {
                 player.chips += game.pot
+                game.winners.push({ playerId: player._id, amount: game.pot, hand })
                 game.pot = 0
                 return game
             }
@@ -67,7 +72,7 @@ const distributeChipsToWinners = (game, handRanks) => {
             let previousSidePot
 
             row.forEach((data, i) => {
-                const { player, sidePot } = data
+                const { player, sidePot, hand } = data
                 let splitAmount
 
                 if (sidePot) {
@@ -99,6 +104,7 @@ const distributeChipsToWinners = (game, handRanks) => {
 
                 player.chips += splitAmount
                 game.pot -= splitAmount
+                game.winners.push({ playerId: player._id, amount: splitAmount, hand })
             })
         }
     }
@@ -106,8 +112,7 @@ const distributeChipsToWinners = (game, handRanks) => {
     return game
 }
 
-// Returns all of the hands in the game from Highest rank to Lowest. Ties are inserted as
-// an array of hands.
+// Returns all of the hands in the game from Highest rank to Lowest.
 const getHandRanks = game => {
     const { communityCards } = game
     const remainingPlayers = game.players.filter(player => player.hand)
