@@ -266,6 +266,17 @@ describe('winnerService', () => {
             expect(determineBetterHand(reverseOrder(hands), communityCards)).toEqual(['KD', '5D'])
         })
 
+        it('flush tie', () => {
+            const hands = [
+                ['AC', '2C'],
+                ['3C', '4C']
+            ]
+            const communityCards = ['2D', 'QD', 'JD', 'TD', '8D']
+
+            expect(determineBetterHand(hands, communityCards)).toEqual(false)
+            expect(determineBetterHand(reverseOrder(hands), communityCards)).toEqual(false)
+        })
+
         it('flush beats straight', () => {
             const hands = [
                 ['AC', '5S'],

@@ -307,13 +307,14 @@ const getFullHouseWinner = (hands, communityCards) => {
     return pairStrength1 > pairStrength2 ? hands[0] : hands[1]
 }
 
-// Remember: There can be no ties with a flush because there can only be one suit with
-// a flush.
 const getFlushWinner = (hands, communityCards) => {
     const flush1 = getHighestFlush(hands[0], communityCards)
     const flush2 = getHighestFlush(hands[1], communityCards)
     const hand1strength = highCardStrength(flush1)
     const hand2strength = highCardStrength(flush2)
+    if (hand1strength === hand2strength) {
+        return false
+    }
     return hand1strength > hand2strength ? hands[0] : hands[1]
 }
 

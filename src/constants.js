@@ -17,6 +17,18 @@ exports.RIVER = 'RIVER'
 
 exports.phases = [exports.PREFLOP, exports.FLOP, exports.TURN, exports.RIVER]
 
+exports.handTypes = {
+    PAIR: 'PAIR',
+    TWO_PAIRS: 'TWO_PAIRS',
+    TRIPS: 'TRIPS',
+    STRAIGHT: 'STRAIGHT',
+    FLUSH: 'FLUSH',
+    FULL_HOUSE: 'FULL_HOUSE',
+    QUADS: 'QUADS',
+    STRAIGHT_FLUSH: 'STRAIGHT_FLUSH',
+    ROYAL_FLUSH: 'ROYAL_FLUSH'
+}
+
 exports.strengthTypes = [
     '2',
     '3',
@@ -31,15 +43,7 @@ exports.strengthTypes = [
     'Q',
     'K',
     'A',
-    'PAIR',
-    'TWO_PAIRS',
-    'TRIPS',
-    'STRAIGHT',
-    'FLUSH',
-    'FULL_HOUSE',
-    'QUADS',
-    'STRAIGHT_FLUSH',
-    'ROYAL_FLUSH'
+    ...Object.values(this.handTypes)
 ]
 
 // Assigns strengths to each card and hand type to make it easier to compare hand strengths.
