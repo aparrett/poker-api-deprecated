@@ -644,6 +644,7 @@ describe('winnerService', () => {
                 [['5D', '8C']],
                 [['AC', 'JH']]
             ]
+            console.log(JSON.stringify(getHandRanks(game)))
             expect(getHandRanks(game)).toEqual(expected)
         })
 
@@ -812,7 +813,8 @@ describe('winnerService', () => {
                     { _id: 'p2', hand: ['KC', 'KD'], chips: 10 }
                 ],
                 pot: 80,
-                sidePots: []
+                sidePots: [],
+                communityCards: []
             }
 
             const handRanks = [[['AC', 'AD']], [['KC', 'KD']]]
@@ -830,7 +832,8 @@ describe('winnerService', () => {
                     { _id: 'p2', hand: ['AS', 'AH'], chips: 10 }
                 ],
                 pot: 20,
-                sidePots: [{ playerId: 'p1', amount: 20 }]
+                sidePots: [{ playerId: 'p1', amount: 20 }],
+                communityCards: []
             }
 
             const handRanks = [
@@ -854,7 +857,8 @@ describe('winnerService', () => {
                     { _id: 'p2', hand: ['AS', 'AH'], chips: 10 }
                 ],
                 pot: 20,
-                sidePots: []
+                sidePots: [],
+                communityCards: []
             }
 
             const handRanks = [
@@ -879,7 +883,8 @@ describe('winnerService', () => {
                     { _id: 'p3', hand: ['AH', '9H'], chips: 10 }
                 ],
                 pot: 30,
-                sidePots: []
+                sidePots: [],
+                communityCards: []
             }
 
             const handRanks = [
@@ -907,7 +912,8 @@ describe('winnerService', () => {
                     { _id: 'p3', hand: ['AH', '9H'], chips: 10 } // put in 10
                 ],
                 pot: 25,
-                sidePots: [{ playerId: 'p1', amount: 15 }]
+                sidePots: [{ playerId: 'p1', amount: 15 }],
+                communityCards: []
             }
 
             const handRanks = [
@@ -934,7 +940,8 @@ describe('winnerService', () => {
                     { _id: 'p3', hand: ['AH', '9H'], chips: 10 } // put in 10
                 ],
                 pot: 25,
-                sidePots: [{ playerId: 'p1', amount: 15 }]
+                sidePots: [{ playerId: 'p1', amount: 15 }],
+                communityCards: []
             }
 
             const handRanks = [
@@ -964,7 +971,8 @@ describe('winnerService', () => {
                 sidePots: [
                     { playerId: 'p1', amount: 15 },
                     { playerId: 'p2', amount: 25 }
-                ]
+                ],
+                communityCards: []
             }
 
             const handRanks = [[['AC', '9C']], [['AS', '9S']], [['AH', '9H']]]
@@ -991,7 +999,8 @@ describe('winnerService', () => {
                     { playerId: 'p1', amount: 25 },
                     { playerId: 'p2', amount: 45 },
                     { playerId: 'p3', amount: 60 }
-                ]
+                ],
+                communityCards: []
             }
 
             const handRanks = [
@@ -1026,7 +1035,8 @@ describe('winnerService', () => {
                 sidePots: [
                     { playerId: 'p1', amount: 20 },
                     { playerId: 'p2', amount: 20 }
-                ]
+                ],
+                communityCards: []
             }
 
             const handRanks = [
@@ -1059,7 +1069,8 @@ describe('winnerService', () => {
                 sidePots: [
                     { playerId: 'p1', amount: 20 },
                     { playerId: 'p2', amount: 20 }
-                ]
+                ],
+                communityCards: []
             }
 
             const handRanks = [
