@@ -65,6 +65,11 @@ const gameSchema = new mongoose.Schema({
         required: true,
         default: []
     },
+    previousCommunityCards: {
+        type: Array,
+        required: true,
+        default: []
+    },
     allInHands: {
         type: Array,
         required: true,
