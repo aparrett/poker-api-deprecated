@@ -644,7 +644,7 @@ describe('winnerService', () => {
                 [['5D', '8C']],
                 [['AC', 'JH']]
             ]
-            console.log(JSON.stringify(getHandRanks(game)))
+
             expect(getHandRanks(game)).toEqual(expected)
         })
 

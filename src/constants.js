@@ -43,7 +43,7 @@ exports.strengthTypes = [
     'Q',
     'K',
     'A',
-    ...Object.values(this.handTypes)
+    ...Object.keys(this.handTypes)
 ]
 
 // Assigns strengths to each card and hand type to make it easier to compare hand strengths.
