@@ -1,4 +1,4 @@
-const { strengthValues, FACES } = require('../constants')
+const { strengthValues, handTypes, FACES } = require('../constants')
 const encryptionService = require('./encryptionService')
 
 const getPlayerByHand = (player, hand) =>
@@ -61,10 +61,20 @@ const distributeChipsToWinners = (game, handRanks) => {
                 player.chips += amount
                 game.pot -= amount
                 highestSidePot = amount
-                game.winners.push({ playerId: player._id, amount, hand })
+                game.winners.push({
+                    playerId: player._id,
+                    amount,
+                    hand,
+                    handType: handTypes[getBestHand(hand, game.communityCards)] || 'HIGH CARD'
+                })
             } else {
                 player.chips += game.pot
-                game.winners.push({ playerId: player._id, amount: game.pot, hand })
+                game.winners.push({
+                    playerId: player._id,
+                    amount: game.pot,
+                    hand,
+                    handType: handTypes[getBestHand(hand, game.communityCards)] || 'HIGH CARD'
+                })
                 game.pot = 0
                 return game
             }
@@ -104,7 +114,12 @@ const distributeChipsToWinners = (game, handRanks) => {
 
                 player.chips += splitAmount
                 game.pot -= splitAmount
-                game.winners.push({ playerId: player._id, amount: splitAmount, hand })
+                game.winners.push({
+                    playerId: player._id,
+                    amount: splitAmount,
+                    hand,
+                    handType: handTypes[getBestHand(hand, game.communityCards)] || 'HIGH CARD'
+                })
             })
         }
     }

@@ -19,14 +19,14 @@ exports.phases = [exports.PREFLOP, exports.FLOP, exports.TURN, exports.RIVER]
 
 exports.handTypes = {
     PAIR: 'PAIR',
-    TWO_PAIRS: 'TWO_PAIRS',
-    TRIPS: 'TRIPS',
+    TWO_PAIRS: 'TWO PAIR',
+    TRIPS: 'THREE OF A KIND',
     STRAIGHT: 'STRAIGHT',
     FLUSH: 'FLUSH',
-    FULL_HOUSE: 'FULL_HOUSE',
-    QUADS: 'QUADS',
-    STRAIGHT_FLUSH: 'STRAIGHT_FLUSH',
-    ROYAL_FLUSH: 'ROYAL_FLUSH'
+    FULL_HOUSE: 'FULL HOUSE',
+    QUADS: 'FOUR OF A KIND',
+    STRAIGHT_FLUSH: 'STRAIGHT FLUSH',
+    ROYAL_FLUSH: 'ROYAL FLUSH'
 }
 
 exports.strengthTypes = [
