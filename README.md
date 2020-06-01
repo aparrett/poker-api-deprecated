@@ -83,7 +83,7 @@ On the first run, there won't be anything in the database. Once you start adding
 
 ## Known Issues
 
-* When a player folds in a 1v1, it shows the winner's cards. This should not happen.
+* When a player folds, it doesn't show the winning animation.
 * Restarting the server makes a user's hand disappear until they refresh their browser.
 
 ## To-Do
