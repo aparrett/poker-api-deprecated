@@ -322,7 +322,6 @@ const resetGame = game => {
     game.lastToRaiseId = undefined
     game.bets = []
     game.deck = []
-    game.previousCommunityCards = game.communityCards
     game.communityCards = []
     game.phase = PREFLOP
     game.allInHands = []
