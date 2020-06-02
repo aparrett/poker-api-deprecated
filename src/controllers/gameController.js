@@ -163,11 +163,7 @@ const leaveTable = async (req, res) => {
 
     // If there's only one player remaining with a hand, give them any bets and reset the player.
     if (game.players.filter(p => p.hand).length === 1) {
-        const winnerIndex = game.players.findIndex(p => p.hand)
-        const winner = game.players[winnerIndex]
-        winner.chips += game.pot
-        game.players.set(winnerIndex, winner)
-        game = startNextRound(game)
+        game = finishRound(game, true)
     } else {
         if ([...new Set(game.bets.map(b => b.amount))].length > 0) {
             let max = 0
@@ -319,7 +315,7 @@ const fold = async (req, res) => {
         game.players.set(playerIndex, player)
 
         if (game.players.filter(player => player.hand).length === 1) {
-            game = finishRound(game)
+            game = finishRound(game, true)
         } else {
             game = finishTurn(game)
         }

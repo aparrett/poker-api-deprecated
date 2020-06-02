@@ -79,6 +79,11 @@ const gameSchema = new mongoose.Schema({
         type: Array,
         required: true,
         default: []
+    },
+    endedByFold: {
+        type: Boolean,
+        required: true,
+        default: false
     }
 })
 

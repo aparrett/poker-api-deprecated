@@ -84,6 +84,7 @@ On the first run, there won't be anything in the database. Once you start adding
 ## Known Issues
 
 * Restarting the server makes a user's hand disappear until they refresh their browser.
+* The styles are not responsive.
 
 ## To-Do
 

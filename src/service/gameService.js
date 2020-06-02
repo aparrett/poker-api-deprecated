@@ -216,10 +216,11 @@ const resetActions = game => {
     return game
 }
 
-const finishRound = game => {
+const finishRound = (game, endedByFold) => {
     const winningHandOrder = getHandRanks(game)
     game = distributeChipsToWinners(game, winningHandOrder)
     game = removeBankruptPlayers(game)
+    game.endedByFold = !!endedByFold
     game = startNextRound(game)
     return game
 }
