@@ -59,7 +59,7 @@ const userSchema = new mongoose.Schema({
     }
 })
 
-userSchema.methods.generateAuthToken = function() {
+userSchema.methods.generateAuthToken = function () {
     const token = jwt.sign({ _id: this._id }, config.jwtPrivateKey)
     return token
 }
@@ -73,6 +73,7 @@ function validate(user) {
             .max(100)
             .required(),
         username: Joi.string()
+            .regex(/^megabot.*/, { invert: true })
             .min(5)
             .max(255)
             .required(),
