@@ -2,9 +2,9 @@ const { Game } = require('./models/Game')
 const { decryptHand } = require('./service/encryptionService')
 
 const initIo = io => {
-    io.on('connection', function(socket) {
+    io.on('connection', function (socket) {
         // joinGame fires when any user loads the game in their browser.
-        socket.on('joinGame', async function(gameId, user) {
+        socket.on('joinGame', async function (gameId, user) {
             console.debug(`User joined game ${gameId}. User: ${user ? user.username : 'Guest'} Socket: ${socket.id}`)
 
             socket.join(gameId)

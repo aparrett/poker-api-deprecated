@@ -1,22 +1,28 @@
 const io = require('socket.io-client');
-const { botMove, moveEnum } = require('./gameController')
-
+const RETRY_DURATION_MILLISECONDS = 2000;
 class BotPlayer {
 	constructor(botName, botLevel, gameObj) {
 		this._id = botName;
 		this.username = botName;
+		this.name = botName;
 		this.level = botLevel;
 		this.game = gameObj;
 		this.chips = 0;
 		this.socketId = "";
+		this.playedOnceTS = false;
 	}
 
-	initializeSocket = async () => {
-		const socket = io();
-		this.socketId = socket.id;
+	initializeSocket = async (botMoveFunc, moveEnum) => {
+		const socket = io('http://localhost:8081');
 
 		try {
 			socket.emit('joinGame', this.game._id, this);
+
+			socket.on('connect', () => {
+				console.debug(`[${this.username}] connect. socket-id: ${socket.id}`);
+				this.socketId = socket.id;
+			})
+
 			socket.on('gameUpdate', game => {
 				if (game) {
 					const nextDealer = game.players.find(p => p.isDealer)
@@ -28,14 +34,14 @@ class BotPlayer {
 						(this.game.players.length > 1 && game.players.length === 1)
 					) {
 						// showWinners
-						console.info(`[${this.username}] Winners of this round: ${game.winners}`);
+						console.info(`[${this.username}] Winners of this round: ${JSON.stringify(game.winners)}`);
 					} else if (this.game.players.length === 1 && game.players.length > 1) {
 						this.game = game
 						// deal
 						console.debug(`[${this.username}] next round is getting dealt`);
 					} else {
 						this.game = game
-						this.checkTurnAndPlay();
+						this.checkTurnAndPlay(botMoveFunc, moveEnum);
 					}
 				} else {
 					// closeGame
@@ -59,19 +65,30 @@ class BotPlayer {
 		return buyInAmount
 	}
 
-	checkTurnAndPlay = async () => {
+	checkTurnAndPlay = async (botMoveFunc, moveEnum) => {
 		const botPlayerIndex = this.game.players.findIndex(player => player._id.toString() === this._id.toString());
-		const botPlayer = game.players[botPlayerIndex]
+		if (botPlayerIndex == -1) {
+			console.debug(`[${this.username}] not yet part of the game...`)
+			return;
+		}
+		const botPlayer = this.game.players[botPlayerIndex]
 
-		if (botPlayer.isTurn) {
-			console.log(`[${this.username}] turn to play`);
-			this.playTurn();
+		// if it is still my turn after a few seconds, retry action
+		if (new Date() - this.playedOnceTS > RETRY_DURATION_MILLISECONDS) {
+			this.playedOnceTS = false;
+		}
+
+		if (botPlayer.isTurn && !this.playedOnceTS) {
+			console.debug(`[${this.username}] turn to play`);
+			this.playTurn(botMoveFunc, moveEnum);
+			this.playedOnceTS = new Date();
 		} else {
+			this.playedOnceTS = false;
 			console.debug(`[${this.username}] waiting for turn...`); // TODO: remove this console
 		}
 	}
 
-	playTurn = async () => {
+	playTurn = async (botMoveFunc, moveEnum) => {
 		/**
 		 * Evaluation all available options
 		 * Call Python code with list of options
@@ -79,7 +96,7 @@ class BotPlayer {
 		 */
 
 		// this stupid bot always folds!
-		botMove(this, this.game._id, moveEnum.FOLD);
+		botMoveFunc(this, this.game._id, moveEnum.FOLD);
 	}
 }
 

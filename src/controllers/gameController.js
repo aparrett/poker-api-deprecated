@@ -105,7 +105,7 @@ const userJoinTable = async (req, res) => {
 }
 
 const botJoinTable = async (botPlayer, gameId) => {
-    await botPlayer.initializeSocket();
+    await botPlayer.initializeSocket(botMove, moveEnum);
     buyIn = botPlayer.buyIn();
 
     joinTable(botPlayer, gameId, buyIn, botPlayer.socketId);
@@ -164,8 +164,6 @@ const joinTable = async (user, gameId, buyIn, socketId, res) => {
 
         game = await game.save()
         updateAllUsers(game)
-        console.log(`[${user.username}] socketId: ${socketId}, number of players in game: ${game.players.length}`);
-        console.log(`[${user.username}] players in the game ${game.players.map(p => p.username)}`);
     });
 
     gameTxnSession.endSession();
@@ -537,5 +535,4 @@ module.exports = {
     leaveTable,
     userMove,
     moveEnum,
-    botMove,
 }

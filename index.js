@@ -13,7 +13,7 @@ require('./src/routes')(app)
 
 const port = process.env.PORT || 8081
 const server = app.listen(port)
-console.log(`Application started. Listening on port ${port}`)
+console.info(`Application started. Listening on port ${port}`)
 
 const io = require('socket.io').listen(server)
 global.io = io // allow sockets to be used in other files.
