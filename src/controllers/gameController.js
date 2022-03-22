@@ -1,7 +1,6 @@
 const { Game, validate } = require('../models/Game')
 const { User } = require('../models/User')
 const { BotPlayer } = require('./botController')
-const mongoose = require('mongoose');
 const assert = require('assert')
 const {
     getLargestBet,
@@ -113,58 +112,63 @@ const botJoinTable = async (botPlayer, gameId) => {
 }
 
 const joinTable = async (user, gameId, buyIn, socketId, res) => {
-    let game = await Game.findById(gameId)
-    if (!game) {
-        return res.status(404).send('Game not found.')
-    }
-
-    if (game.players.find(player => player._id.toString() === user._id.toString())) {
-        return res.status(400).send('User is already sitting at the table.')
-    }
-
-    if (game.playersWaiting.find(player => player._id.toString() === user._id.toString())) {
-        return res.status(400).send('You will be dealt cards on the next hand.')
-    }
-
-    if (game.players.length + game.playersWaiting.length === game.maxPlayers) {
-        return res.status(400).send('The table is already at max capacity.')
-    }
-
-    if (buyIn > game.maxBuyIn) {
-        return res.status(400).send('The buy-in amount cannot be more than the max buy-in.')
-    }
-
-    if (buyIn <= game.bigBlind) {
-        return res.status(400).send('The buy-in amount must greater than the big blind.')
-    }
-
-    user.socketId = socketId
-    user.chips = buyIn
-
-    if (parseInt(game.numBots) == 0) {
-        if (game.players.length === 1) {
-            game.players.push(user)
-            game = startNextRound(game)
-        } else {
-            game.playersWaiting.push(user)
+    const gameTxnSession = await Game.startSession();
+    await gameTxnSession.withTransaction(async () => {
+        let game = await Game.findById(gameId).session(gameTxnSession);
+        if (!game) {
+            return res.status(404).send('Game not found.')
         }
-    } else {
-        const humanPlayersCount = game.players.length - parseInt(game.numBots);
-        if (humanPlayersCount < 0) {
-            // this is required to make sure that all bots are able to join the game
-            game.players.push(user);
-        } else if (humanPlayersCount == 0) {
-            game.players.push(user);
-            game = startNextRound(game);
-        } else {
-            game.playersWaiting.push(user);
-        }
-    }
 
-    game = await game.save()
-    updateAllUsers(game)
-    console.log(`[${user.username}] socketId: ${socketId}, number of players in game: ${game.players.length}`);
-    console.log(`[${user.username}] players in the game ${game.players.map(p => p.username)}`);
+        if (game.players.find(player => player._id.toString() === user._id.toString())) {
+            return res.status(400).send('User is already sitting at the table.')
+        }
+
+        if (game.playersWaiting.find(player => player._id.toString() === user._id.toString())) {
+            return res.status(400).send('You will be dealt cards on the next hand.')
+        }
+
+        if (game.players.length + game.playersWaiting.length === game.maxPlayers) {
+            return res.status(400).send('The table is already at max capacity.')
+        }
+
+        if (buyIn > game.maxBuyIn) {
+            return res.status(400).send('The buy-in amount cannot be more than the max buy-in.')
+        }
+
+        if (buyIn <= game.bigBlind) {
+            return res.status(400).send('The buy-in amount must greater than the big blind.')
+        }
+
+        user.socketId = socketId
+        user.chips = buyIn
+
+        if (parseInt(game.numBots) == 0) {
+            if (game.players.length === 1) {
+                game.players.push(user)
+                game = startNextRound(game)
+            } else {
+                game.playersWaiting.push(user)
+            }
+        } else {
+            const humanPlayersCount = game.players.length - parseInt(game.numBots);
+            if (humanPlayersCount < 0) {
+                // this is required to make sure that all bots are able to join the game
+                game.players.push(user);
+            } else if (humanPlayersCount == 0) {
+                game.players.push(user);
+                game = startNextRound(game);
+            } else {
+                game.playersWaiting.push(user);
+            }
+        }
+
+        game = await game.save()
+        updateAllUsers(game)
+        console.log(`[${user.username}] socketId: ${socketId}, number of players in game: ${game.players.length}`);
+        console.log(`[${user.username}] players in the game ${game.players.map(p => p.username)}`);
+    });
+
+    gameTxnSession.endSession();
     return
 }
 
@@ -174,234 +178,284 @@ const leaveTable = async (req, res) => {
         return res.status(401).send('You must be logged in to leave a table.')
     }
 
-    let game = await Game.findById(req.params.id)
-    if (!game) {
-        return res.status(404).send('Game not found.')
-    }
+    let returnObj;
+    const gameTxnSession = await Game.startSession();
+    await gameTxnSession.withTransaction(async () => {
+        let game = await Game.findById(req.params.id).session(gameTxnSession);
+        if (!game) {
+            returnObj = res.status(404).send('Game not found.')
+        }
 
-    const index = game.players.findIndex(player => player._id.toString() === user._id.toString())
-    if (index === -1) {
-        const waitingIndex = game.playersWaiting.findIndex(player => player._id.toString() === user._id.toString())
-        if (waitingIndex !== -1) {
-            game.playersWaiting.splice(waitingIndex, 1)
+        const index = game.players.findIndex(player => player._id.toString() === user._id.toString())
+        if (index === -1) {
+            const waitingIndex = game.playersWaiting.findIndex(player => player._id.toString() === user._id.toString())
+            if (waitingIndex !== -1) {
+                game.playersWaiting.splice(waitingIndex, 1)
 
+                game = await game.save()
+                updateAllUsers(game)
+                returnObj = res.status(200).send();
+                return;
+            }
+            returnObj = res.status(400).send('The requested user is not sitting at the table.');
+            return;
+        }
+
+        if (game.players.length - game.numBots <= 1) {
+            await Game.deleteOne({ _id: req.params.id }).session(gameTxnSession);
+
+            // Any empty game object as the 2nd emit parameter informs clients that the game has been deleted.
+            returnObj = io.in(game._id).emit('gameUpdate');
+            return;
+        }
+
+        const player = game.players[index]
+
+        if (player.isTurn) {
+            game = finishTurn(game)
+        }
+
+        game.players.splice(index, 1)
+
+        const leaverBetIndex = game.bets.findIndex(bet => bet.playerId === player._id)
+        if (leaverBetIndex !== -1) {
+            game.bets.splice(leaverBetIndex, 1)
+        }
+
+        // If there's only one player remaining with a hand, give them any bets and reset the player.
+        if (game.players.filter(p => p.hand).length === 1) {
+            game = finishRound(game, true)
+        } else {
+            if ([...new Set(game.bets.map(b => b.amount))].length > 0) {
+                let max = 0
+                game.bets.forEach(bet => {
+                    if (bet.amount > max) {
+                        game.lastToRaiseId = bet.playerId
+                        max = bet.amount
+                    }
+                })
+            }
+        }
+
+        try {
             game = await game.save()
             updateAllUsers(game)
-            return res.status(200).send()
+            returnObj = res.status(200).send();
+            return;
+        } catch (e) {
+            console.error(e);
+            returnObj = res.status(500).send('Something went wrong.');
+            return;
         }
-        return res.status(400).send('The requested user is not sitting at the table.')
-    }
+    })
 
-    console.log(`[${user.username}] leaveTable: game.players: len=${game.players.length} obj:${JSON.stringify(game.players)}`)
-    if (game.players.length - game.numBots <= 1) {
-        await Game.deleteOne({ _id: req.params.id })
-
-        // Any empty game object as the 2nd emit parameter informs clients that the game has been deleted.
-        return io.in(game._id).emit('gameUpdate')
-    }
-
-    const player = game.players[index]
-
-    if (player.isTurn) {
-        game = finishTurn(game)
-    }
-
-    game.players.splice(index, 1)
-
-    const leaverBetIndex = game.bets.findIndex(bet => bet.playerId === player._id)
-    if (leaverBetIndex !== -1) {
-        game.bets.splice(leaverBetIndex, 1)
-    }
-
-    // If there's only one player remaining with a hand, give them any bets and reset the player.
-    if (game.players.filter(p => p.hand).length === 1) {
-        game = finishRound(game, true)
-    } else {
-        if ([...new Set(game.bets.map(b => b.amount))].length > 0) {
-            let max = 0
-            game.bets.forEach(bet => {
-                if (bet.amount > max) {
-                    game.lastToRaiseId = bet.playerId
-                    max = bet.amount
-                }
-            })
-        }
-    }
-
-    try {
-        game = await game.save()
-        updateAllUsers(game)
-        return res.status(200).send()
-    } catch (e) {
-        console.error(e);
-        return res.status(500).send('Something went wrong.')
-    }
+    gameTxnSession.endSession();
+    return returnObj;
 }
 
 const call = async (user, gameId) => {
-    let game = await Game.findById(gameId);
-    if (!game) {
-        return [404, 'Game not found.'];
-    }
+    let returnObj;
+    const gameTxnSession = await Game.startSession();
+    await gameTxnSession.withTransaction(async () => {
+        let game = await Game.findById(gameId).session(gameTxnSession);
+        if (!game) {
+            returnObj = [404, 'Game not found.'];
+            return;
+        }
 
-    if (user._id === game.lastToRaiseId) {
-        return [400, 'Cannot call your own raise.'];
-    }
+        if (user._id === game.lastToRaiseId) {
+            returnObj = [400, 'Cannot call your own raise.'];
+            return;
+        }
 
-    const playerIndex = game.players.findIndex(player => player._id.toString() === user._id.toString())
-    const player = game.players[playerIndex]
+        const playerIndex = game.players.findIndex(player => player._id.toString() === user._id.toString())
+        const player = game.players[playerIndex]
 
-    if (!player.isTurn) {
-        return [400, 'You cannot call out of turn.'];
-    }
+        if (!player.isTurn) {
+            returnObj = [400, 'You cannot call out of turn.'];
+            return;
+        }
 
-    const largestBet = getLargestBet(game)
-    const currentBetIndex = game.bets.findIndex(bet => bet.playerId.toString() === user._id.toString())
-    const currentBet = game.bets[currentBetIndex]
-    const amountToCall = currentBet ? largestBet - currentBet.amount : largestBet
-    const betAmount = player.chips < amountToCall ? player.chips : amountToCall
+        const largestBet = getLargestBet(game)
+        const currentBetIndex = game.bets.findIndex(bet => bet.playerId.toString() === user._id.toString())
+        const currentBet = game.bets[currentBetIndex]
+        const amountToCall = currentBet ? largestBet - currentBet.amount : largestBet
+        const betAmount = player.chips < amountToCall ? player.chips : amountToCall
 
-    player.chips -= betAmount
+        player.chips -= betAmount
 
-    if (!player.chips) {
-        player.lastAction = 'All-In'
-        game.allInHands.push({ playerId: player._id, hand: decryptHand(player.hand) })
-    } else {
-        player.lastAction = 'Call'
-    }
+        if (!player.chips) {
+            player.lastAction = 'All-In'
+            game.allInHands.push({ playerId: player._id, hand: decryptHand(player.hand) })
+        } else {
+            player.lastAction = 'Call'
+        }
 
-    game.players.set(playerIndex, player)
+        game.players.set(playerIndex, player)
 
-    if (currentBet) {
-        currentBet.amount += betAmount
-        game.bets.set(currentBetIndex, currentBet)
-    } else {
-        game.bets.push({ playerId: player._id, username: player.username, amount: betAmount })
-    }
+        if (currentBet) {
+            currentBet.amount += betAmount
+            game.bets.set(currentBetIndex, currentBet)
+        } else {
+            game.bets.push({ playerId: player._id, username: player.username, amount: betAmount })
+        }
 
-    game.pot += betAmount
+        game.pot += betAmount
 
-    game = finishTurn(game)
-    game = await game.save()
+        game = finishTurn(game)
+        game = await game.save()
 
-    updateAllUsers(game)
-    return [200, null];
+        updateAllUsers(game)
+        returnObj = [200, null];
+    })
 
+    gameTxnSession.endSession();
+    return returnObj;
 }
 
 const check = async (user, gameId) => {
-    let game = await Game.findById(gameId);
-    if (!game) {
-        return [404, 'Game not found.'];
-    }
+    let returnObj;
+    const gameTxnSession = await Game.startSession();
+    await gameTxnSession.withTransaction(async () => {
+        let game = await Game.findById(gameId).session(gameTxnSession);
+        if (!game) {
+            returnObj = [404, 'Game not found.'];
+            return;
+        }
 
-    const playerIndex = game.players.findIndex(player => player._id.toString() === user._id.toString())
-    const player = game.players[playerIndex]
+        const playerIndex = game.players.findIndex(player => player._id.toString() === user._id.toString())
+        const player = game.players[playerIndex]
 
-    if (!player.isTurn) {
-        return [400, 'You cannot check out of turn.'];
-    }
+        if (!player.isTurn) {
+            returnObj = [400, 'You cannot check out of turn.'];
+            return;
+        }
 
-    const largestBet = getLargestBet(game)
-    const currentBetIndex = game.bets.findIndex(bet => bet.playerId.toString() === user._id.toString())
-    const currentBet = game.bets[currentBetIndex]
+        const largestBet = getLargestBet(game)
+        const currentBetIndex = game.bets.findIndex(bet => bet.playerId.toString() === user._id.toString())
+        const currentBet = game.bets[currentBetIndex]
 
-    if (largestBet !== 0 && (!currentBet || currentBet.amount !== largestBet)) {
-        return [400, 'Cannot check when your bet does not equal the largest bet.']
-    }
+        if (largestBet !== 0 && (!currentBet || currentBet.amount !== largestBet)) {
+            returnObj = [400, 'Cannot check when your bet does not equal the largest bet.']
+            return;
+        }
 
-    player.lastAction = 'Check'
-    game.players.set(playerIndex, player)
+        player.lastAction = 'Check'
+        game.players.set(playerIndex, player)
 
-    game = finishTurn(game)
-    game = await game.save()
+        game = finishTurn(game)
+        game = await game.save()
 
-    updateAllUsers(game)
-    return [200, null];
+        updateAllUsers(game)
+        returnObj = [200, null];
+    })
+
+    gameTxnSession.endSession();
+    return returnObj;
 }
 
 const fold = async (user, gameId) => {
-    let game = await Game.findById(gameId)
-    if (!game) {
-        return [404, 'Game not found.'];
-    }
+    let returnObj;
+    const gameTxnSession = await Game.startSession();
+    await gameTxnSession.withTransaction(async () => {
+        let game = await Game.findById(gameId).session(gameTxnSession);
+        if (!game) {
+            returnObj = [404, 'Game not found.'];
+            return;
+        }
 
-    const playerIndex = game.players.findIndex(player => player._id.toString() === user._id.toString())
-    const player = game.players[playerIndex]
+        const playerIndex = game.players.findIndex(player => player._id.toString() === user._id.toString())
+        const player = game.players[playerIndex]
 
-    if (!player.isTurn) {
-        return [400, 'You cannot fold out of turn.'];
-    }
+        if (!player.isTurn) {
+            returnObj = [400, 'You cannot fold out of turn.'];
+            return;
+        }
 
-    if (!player.hand) {
-        return [400, 'You cannot fold again.'];
-    }
+        if (!player.hand) {
+            returnObj = [400, 'You cannot fold again.'];
+            return;
+        }
 
-    player.lastAction = 'Fold'
-    player.hand = undefined
-    game.players.set(playerIndex, player)
+        player.lastAction = 'Fold'
+        player.hand = undefined
+        game.players.set(playerIndex, player)
 
-    if (game.players.filter(player => player.hand).length === 1) {
-        game = finishRound(game, true)
-    } else {
-        game = finishTurn(game)
-    }
+        if (game.players.filter(player => player.hand).length === 1) {
+            game = finishRound(game, true)
+        } else {
+            game = finishTurn(game)
+        }
 
-    game = await game.save()
+        game = await game.save()
 
-    updateAllUsers(game)
-    return [200, null];
+        updateAllUsers(game)
+        returnObj = [200, null];
+    })
+
+    gameTxnSession.endSession();
+    return returnObj;
 }
 
 const raise = async (user, gameId, raiseAmount) => {
-    let game = await Game.findById(gameId);
-    if (!game) {
-        return [404, 'Game not found.']
-    }
+    let returnObj;
+    const gameTxnSession = await Game.startSession();
+    await gameTxnSession.withTransaction(async () => {
+        let game = await Game.findById(gameId).session(gameTxnSession);
+        if (!game) {
+            returnObj = [404, 'Game not found.'];
+            return;
+        }
 
-    const playerIndex = game.players.findIndex(player => player._id.toString() === user._id.toString())
-    const player = game.players[playerIndex]
+        const playerIndex = game.players.findIndex(player => player._id.toString() === user._id.toString())
+        const player = game.players[playerIndex]
 
-    if (player._id === game.lastToRaiseId) {
-        return [400, 'Cannot raise again when you were the last player to raise.'];
-    }
+        if (player._id === game.lastToRaiseId) {
+            returnObj = [400, 'Cannot raise again when you were the last player to raise.'];
+            return;
+        }
 
-    const largestBet = getLargestBet(game)
-    const currentBetIndex = game.bets.findIndex(bet => bet.playerId.toString() === user._id.toString())
-    const currentBet = game.bets[currentBetIndex]
-    const amountToCall = currentBet ? largestBet - currentBet.amount : largestBet
-    const totalBet = amountToCall + raiseAmount
+        const largestBet = getLargestBet(game)
+        const currentBetIndex = game.bets.findIndex(bet => bet.playerId.toString() === user._id.toString())
+        const currentBet = game.bets[currentBetIndex]
+        const amountToCall = currentBet ? largestBet - currentBet.amount : largestBet
+        const totalBet = amountToCall + raiseAmount
 
-    if (player.chips < totalBet) {
-        return [400, 'Cannot raise more chips than what you have left.'];
-    }
+        if (player.chips < totalBet) {
+            returnObj = [400, 'Cannot raise more chips than what you have left.'];
+            return;
+        }
 
-    if (currentBet) {
-        currentBet.amount += totalBet
-        game.bets.set(currentBetIndex, currentBet)
-    } else {
-        game.bets.push({ playerId: player._id, username: player.username, amount: totalBet })
-    }
+        if (currentBet) {
+            currentBet.amount += totalBet
+            game.bets.set(currentBetIndex, currentBet)
+        } else {
+            game.bets.push({ playerId: player._id, username: player.username, amount: totalBet })
+        }
 
-    if (totalBet === player.chips) {
-        game.allInHands.push({ playerId: player._id, hand: decryptHand(player.hand) })
-        player.lastAction = 'All-In'
-    } else {
-        player.lastAction = 'Raise'
-    }
+        if (totalBet === player.chips) {
+            game.allInHands.push({ playerId: player._id, hand: decryptHand(player.hand) })
+            player.lastAction = 'All-In'
+        } else {
+            player.lastAction = 'Raise'
+        }
 
-    game.lastToRaiseId = player._id
+        game.lastToRaiseId = player._id
 
-    player.chips -= totalBet
-    game.players.set(playerIndex, player)
+        player.chips -= totalBet
+        game.players.set(playerIndex, player)
 
-    game.pot += totalBet
+        game.pot += totalBet
 
-    game = finishTurn(game)
-    game = await game.save()
+        game = finishTurn(game)
+        game = await game.save()
 
-    updateAllUsers(game)
-    return [200, null]
+        updateAllUsers(game)
+        returnObj = [200, null]
+    })
+
+    gameTxnSession.endSession();
+    return returnObj;
 }
 
 const moveEnum = Object.freeze({

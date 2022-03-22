@@ -9,8 +9,8 @@ module.exports = async () => {
             useNewUrlParser: true
         }
         await mongoose.connect(config.mongoURI, settings)
-        console.log(`Connected to database.`)
+        console.info(`Connected to database.`)
     } catch (e) {
-        console.log('Error connecting to database.', e)
+        console.error('Error connecting to database.', e)
     }
 }

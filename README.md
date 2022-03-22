@@ -40,9 +40,8 @@ These are the Mac instructions for setting up the database in your local. The Wi
 2. Install and Run MongoDb
 
 ```
-brew tap mongodb/brew
-brew install mongodb-community@4.2
-brew services start mongodb-community@4.2
+npm install run-rs -g
+run-rs -v 5.0.0
 ```
 
 3. Download the database GUI of your choice to view the data in a more user-friendly way. I recommend Robo 3T.
