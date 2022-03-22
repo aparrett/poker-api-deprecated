@@ -84,6 +84,11 @@ const gameSchema = new mongoose.Schema({
         type: Boolean,
         required: true,
         default: false
+    },
+    numBots: {
+        type: Number,
+        required: true,
+        default: 0
     }
 })
 
@@ -110,6 +115,11 @@ function validate(game) {
             .integer()
             .min(0)
             .max(game.bigBlind - 1)
+            .required(),
+        numBots: Joi.number()
+            .integer()
+            .min(0)
+            .max(game.maxPlayers - 1)
             .required()
     }
 
