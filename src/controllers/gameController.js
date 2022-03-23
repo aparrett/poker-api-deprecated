@@ -108,7 +108,17 @@ const botJoinTable = async (botPlayer, gameId) => {
     await botPlayer.initializeSocket(botMove, moveEnum);
     buyIn = botPlayer.buyIn();
 
-    joinTable(botPlayer, gameId, buyIn, botPlayer.socketId);
+    function checkSocketIdExists(botPlayer) {
+        console.log(`[${botPlayer.username}] socket-id=${botPlayer.socketId}`);
+        if (!botPlayer.socketId || typeof botPlayer.socketId != 'string' || botPlayer.socketId.length == 0) {
+            setTimeout(checkSocketIdExists, 1000, botPlayer);
+        } else {
+            console.log(`[${botPlayer.username}] checkSocketIdExists clearing. Socket-id: ${botPlayer.socketId}`)
+            joinTable(botPlayer, gameId, buyIn, botPlayer.socketId);
+        }
+    }
+
+    checkSocketIdExists(botPlayer);
 }
 
 const joinTable = async (user, gameId, buyIn, socketId, res) => {
@@ -161,6 +171,7 @@ const joinTable = async (user, gameId, buyIn, socketId, res) => {
                 game.playersWaiting.push(user);
             }
         }
+        console.debug(`[joinTable] player ${user.username} joined with socket-id ${user.socketId}`);
 
         game = await game.save()
         updateAllUsers(game)
@@ -392,6 +403,7 @@ const fold = async (user, gameId) => {
     })
 
     gameTxnSession.endSession();
+    console.log(`[${user.username}] FOLD. returnObj: ${returnObj}`)
     return returnObj;
 }
 
@@ -488,7 +500,7 @@ const botMove = async (botPlayer, gameId, move, raiseAmount = 0) => {
         } else {
             const [_, payload] = await moveFunc(botPlayer, gameId);
             if (payload) {
-                console.error(payload);
+                console.error(`[${botPlayer.username}] move (${move}) received this error: ${payload}`);
             }
             return payload
         }
