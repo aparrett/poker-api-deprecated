@@ -1,6 +1,14 @@
 const io = require('socket.io-client');
 const MIN_WAIT_TIME_AT_START_MILLISECONDS = 5000;
-const RETRY_DURATION_MILLISECONDS = 2000;
+const RETRY_DURATION_MILLISECONDS = 1500;
+
+// this needs to be in sync with GameSettingsDialog.vue in the client code
+const botLevelOptions = Object.freeze({
+	EASY: 'Easy',
+	MEDIUM: 'Medium',
+	HARD: 'Hard'
+})
+
 class BotPlayer {
 	constructor(botName, botLevel, gameObj) {
 		this._id = botName;
@@ -10,6 +18,7 @@ class BotPlayer {
 		this.game = gameObj;
 		this.chips = 0;
 		this.socketId = "";
+		this.hand = [];
 		this.playedOnceTS = false;
 		this.gameStartTS = null;
 	}
@@ -33,6 +42,7 @@ class BotPlayer {
 					const dealerChanged = previousDealer && nextDealer && nextDealer._id !== previousDealer._id
 					if ((!previousDealer && nextDealer) || dealerChanged) {
 						console.log(`[${this.username}] ====================== GAME START`);
+						this.hand = [];
 						this.gameStartTS = new Date();
 						this.playedOnceTS = false;
 					}
@@ -51,10 +61,12 @@ class BotPlayer {
 						if (this.checkTurn(this.game) && this.checkTurn(game) && this.playedOnceTS) {
 							// repeated game state
 							this.game = game;
+							if (this.game.hand) this.hand = this.game.hand;
 							console.debug(`[${this.username}] my turn, but repeated situation`);
 						}
 						else {
 							this.game = game
+							if (this.game.hand) this.hand = this.game.hand;
 							this.checkTurnAndPlay(botMoveFunc, moveEnum);
 						}
 					}
@@ -64,13 +76,6 @@ class BotPlayer {
 				}
 			})
 		} catch (e) {
-			// let errorText = "";
-			// if (e.response.status === 404) {
-			// 	errorText = 'Unable to find the specified game. Redirecting..'
-			// } else {
-			// 	errorText = 'Something went wrong, please try again later. Redirecting'
-			// }
-
 			console.warn(`[${this.username}] socket error: ${e}`);
 		}
 	}
@@ -80,18 +85,62 @@ class BotPlayer {
 		return buyInAmount
 	}
 
-	checkTurn = (game) => {
-		const botPlayerIndex = game.players.findIndex(player => player._id.toString() === this._id.toString());
-		return (botPlayerIndex !== -1) && (game.players[botPlayerIndex].isTurn)
+
+	botPlayer = (game) => (game.players.find(player => player._id === this._id))
+
+	isBotPlaying = (game) => !!this.botPlayer(game)
+
+	checkTurn = (game) => (this.isBotPlaying(game) && this.botPlayer(game).isTurn)
+
+	playerBet(game) {
+		if (!this.isBotPlaying(game)) {
+			return false
+		}
+		const bet = game.bets.find(b => b.playerId === this._id)
+		return bet ? bet.amount : false
+	}
+
+	largestBet(game) {
+		if (!game || game.bets.length === 0) {
+			return 0
+		}
+		return Math.max(...game.bets.map(bet => bet.amount))
+	}
+
+	canCall = (game) => (
+		(game.bets.length > 0) && (this.playerBet(game) !== this.largestBet(game))
+	)
+
+	canCheck(game) {
+		const playerBet = this.playerBet(game);
+		if (
+			(!playerBet && game.bets.length > 0) ||
+			(playerBet && playerBet < this.largestBet(game))
+		) {
+			return false
+		}
+		return true
+	}
+
+	amountToCall(game) {
+		const playerBet = this.playerBet(game) || 0;
+		return this.largestBet(game) - playerBet;
+	}
+
+	canRaise(game) {
+		if (!this.isBotPlaying(game)) {
+			return false
+		}
+		const amountToCall = this.amountToCall(game);
+		return this.botPlayer(game).chips > amountToCall && game.lastToRaiseId !== this._id
 	}
 
 	checkTurnAndPlay = async (botMoveFunc, moveEnum) => {
-		const botPlayerIndex = this.game.players.findIndex(player => player._id.toString() === this._id.toString());
-		if (botPlayerIndex == -1) {
+		if (!this.isBotPlaying(this.game)) {
 			console.debug(`[${this.username}] not yet part of the game...`)
 			return;
 		}
-		const botPlayer = this.game.players[botPlayerIndex]
+		const botPlayer = this.botPlayer(this.game);
 
 		// if it is still my turn after a few seconds, retry action
 		// if (new Date() - this.playedOnceTS > RETRY_DURATION_MILLISECONDS) {
@@ -107,8 +156,12 @@ class BotPlayer {
 					await new Promise(r => setTimeout(r, MIN_WAIT_TIME_AT_START_MILLISECONDS - timeLapsed));
 				}
 				console.log(`[${this.username}] time passed since game start: ${timeLapsed / 1000} seconds`)
-				this.playTurn(botMoveFunc, moveEnum);
-				this.playedOnceTS = new Date();
+				if (this.hand && this.hand.length > 0) {
+					this.playTurn(botMoveFunc, moveEnum);
+					this.playedOnceTS = new Date();
+				} else {
+					console.warn(`[${this.username}] Did not receive hand details. Waiting...`)
+				}
 			}
 			else {
 				console.debug(`[${this.username}] turn to play. just played. Waiting for changes to reflect...`)
@@ -119,15 +172,81 @@ class BotPlayer {
 		}
 	}
 
+	localPlayLogic = (game, hand, playOptions, moveEnum) => {
+		const moveDetails = (move, raiseAmount = 0) => ({
+			move, raiseAmount
+		})
+		switch (this.level) {
+			case botLevelOptions.EASY:
+				// this stupid bot always folds!
+				return moveDetails(moveEnum.FOLD);
+			case botLevelOptions.MEDIUM:
+				const moveIndex = Math.floor(Math.random() * playOptions.length);
+				const move = playOptions[moveIndex];
+				if (move != moveEnum.RAISE) {
+					return moveDetails(move);
+				} else {
+					// when we want to raise
+					const raiseLimit = this.botPlayer(this.game).chips - this.amountToCall(this.game);
+					const raiseAmount = Math.ceil(Math.random() * raiseLimit);
+					return moveDetails(move, raiseAmount);
+				}
+			case botLevelOptions.HARD:
+				if (!hand || hand.length == 0) {
+					return moveDetails(moveEnum.FOLD); // folds if no information is available
+				}
+				const playInPriorityOrder = (order) => {
+					for (let move of order) {
+						if (playOptions.includes(move)) {
+							if (move != moveEnum.RAISE) {
+								return moveDetails(move);
+							} else {
+								// when we want to raise
+								const raiseLimit = this.botPlayer(this.game).chips - this.amountToCall(this.game);
+								const raiseAmount = Math.min(raiseLimit, this.amountToCall(this.game));
+								if (raiseAmount > 0) return moveDetails(move, raiseAmount);
+							}
+						}
+					}
+				}
+				const isFaceCard = (card) => {
+					const faceCardNum = ['T', 'J', 'Q', 'K', 'A'];
+					return faceCardNum.includes(card[0]);
+				}
+				if (isFaceCard(hand[0]) && isFaceCard(hand[1]) && (hand[0][0] == hand[1][0])) {
+					return playInPriorityOrder([moveEnum.RAISE, moveEnum.CALL, moveEnum.CHECK, moveEnum.FOLD]);
+				} else if (isFaceCard(hand[0]) && isFaceCard(hand[1])) {
+					return playInPriorityOrder([moveEnum.CALL, moveEnum.RAISE, moveEnum.CHECK, moveEnum.FOLD]);
+				} else if (isFaceCard(hand[0]) || isFaceCard(hand[1])) {
+					return playInPriorityOrder([moveEnum.CALL, moveEnum.CHECK, moveEnum.FOLD]);
+				} else {
+					return playInPriorityOrder([moveEnum.CHECK, moveEnum.FOLD]);
+				}
+			default:
+				break;
+		}
+	}
+
 	playTurn = async (botMoveFunc, moveEnum) => {
 		/**
 		 * Evaluation all available options
 		 * Call Python code with list of options
 		 * Return action
 		 */
+		let playOptions = [moveEnum.FOLD];
+		if (this.canCheck(this.game)) {
+			playOptions.push(moveEnum.CHECK);
+		}
+		if (this.canCall(this.game)) {
+			playOptions.push(moveEnum.CALL);
+		}
+		if (this.canRaise(this.game)) {
+			playOptions.push(moveEnum.RAISE);
+		}
 
-		// this stupid bot always folds!
-		botMoveFunc(this, this.game._id, moveEnum.FOLD);
+		const moveDetails = this.localPlayLogic(this.game, this.hand, playOptions, moveEnum);
+		let retObj = botMoveFunc(this, this.game._id, moveDetails.move, moveDetails.raiseAmount)
+		console.info(`[${this.username}] Executed ${moveDetails.move} (${moveDetails.raiseAmount}). hand: ${this.hand} [game has: ${this.game.hand}].\n\t\tReceived: ${JSON.stringify(retObj)}`);
 	}
 }
 
