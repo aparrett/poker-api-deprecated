@@ -403,7 +403,6 @@ const fold = async (user, gameId) => {
     })
 
     gameTxnSession.endSession();
-    console.log(`[${user.username}] FOLD. returnObj: ${returnObj}`)
     return returnObj;
 }
 

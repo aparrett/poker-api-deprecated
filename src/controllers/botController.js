@@ -1,6 +1,6 @@
 const io = require('socket.io-client');
-const MIN_WAIT_TIME_AT_START_MILLISECONDS = 5000;
-const RETRY_DURATION_MILLISECONDS = 1500;
+const MIN_WAIT_TIME_AT_START_MILLISECONDS = 3000;
+const PLAY_DELAY_MILLISECONDS = 1000;
 
 // this needs to be in sync with GameSettingsDialog.vue in the client code
 const botLevelOptions = Object.freeze({
@@ -46,6 +46,11 @@ class BotPlayer {
 						this.gameStartTS = new Date();
 						this.playedOnceTS = false;
 					}
+					else if (game.phase != this.game.phase) {
+						// it is possible that the last mover of the previous phase is the first mover of the next phase
+						this.playedOnceTS = false;
+					}
+
 					if (
 						(this.game.players.length !== 1 && dealerChanged) ||
 						(this.game.players.length > 1 && game.players.length === 1)
@@ -137,28 +142,21 @@ class BotPlayer {
 
 	checkTurnAndPlay = async (botMoveFunc, moveEnum) => {
 		if (!this.isBotPlaying(this.game)) {
-			console.debug(`[${this.username}] not yet part of the game...`)
+			// console.debug(`[${this.username}] not yet part of the game...`)
 			return;
 		}
 		const botPlayer = this.botPlayer(this.game);
-
-		// if it is still my turn after a few seconds, retry action
-		// if (new Date() - this.playedOnceTS > RETRY_DURATION_MILLISECONDS) {
-		// 	this.playedOnceTS = false;
-		// }
-
 		if (botPlayer.isTurn) {
 			if (!this.playedOnceTS) {
 				console.debug(`[${this.username}] turn to play. playing...`)
-				const timeLapsed = (new Date() - this.gameStartTS)
-				if (MIN_WAIT_TIME_AT_START_MILLISECONDS > timeLapsed) {
-					console.debug(`[${this.username}] waiting for ${(MIN_WAIT_TIME_AT_START_MILLISECONDS - timeLapsed) / 1000} seconds`)
-					await new Promise(r => setTimeout(r, MIN_WAIT_TIME_AT_START_MILLISECONDS - timeLapsed));
-				}
-				console.log(`[${this.username}] time passed since game start: ${timeLapsed / 1000} seconds`)
 				if (this.hand && this.hand.length > 0) {
+					this.playedOnceTS = new Date(); // play finalized
+
+					const timeLapsed = (new Date() - this.gameStartTS);
+					const playDelayMS = Math.max(PLAY_DELAY_MILLISECONDS, MIN_WAIT_TIME_AT_START_MILLISECONDS - timeLapsed)
+					console.debug(`[${this.username}] waiting for ${playDelayMS / 1000} seconds`)
+					await new Promise(r => setTimeout(r, playDelayMS));
 					this.playTurn(botMoveFunc, moveEnum);
-					this.playedOnceTS = new Date();
 				} else {
 					console.warn(`[${this.username}] Did not receive hand details. Waiting...`)
 				}
