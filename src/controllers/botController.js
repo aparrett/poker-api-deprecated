@@ -201,7 +201,7 @@ class BotPlayer {
 							} else {
 								// when we want to raise
 								const raiseLimit = this.botPlayer(this.game).chips - this.amountToCall(this.game);
-								const raiseAmount = Math.min(raiseLimit, this.amountToCall(this.game));
+								const raiseAmount = Math.min(raiseLimit, Math.max(this.amountToCall(this.game), 10));
 								if (raiseAmount > 0) return moveDetails(move, raiseAmount);
 							}
 						}
