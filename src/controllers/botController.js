@@ -1,6 +1,6 @@
 const io = require('socket.io-client');
-const MIN_WAIT_TIME_AT_START_MILLISECONDS = 3000;
-const PLAY_DELAY_MILLISECONDS = 1000;
+const MIN_WAIT_TIME_AT_START_MILLISECONDS = 4000;
+const PLAY_DELAY_MILLISECONDS = 2000;
 
 // this needs to be in sync with GameSettingsDialog.vue in the client code
 const botLevelOptions = Object.freeze({
@@ -155,8 +155,7 @@ class BotPlayer {
 					const timeLapsed = (new Date() - this.gameStartTS);
 					const playDelayMS = Math.max(PLAY_DELAY_MILLISECONDS, MIN_WAIT_TIME_AT_START_MILLISECONDS - timeLapsed)
 					console.debug(`[${this.username}] waiting for ${playDelayMS / 1000} seconds`)
-					await new Promise(r => setTimeout(r, playDelayMS));
-					this.playTurn(botMoveFunc, moveEnum);
+					setTimeout(this.playTurn, playDelayMS, botMoveFunc, moveEnum);
 				} else {
 					console.warn(`[${this.username}] Did not receive hand details. Waiting...`)
 				}
