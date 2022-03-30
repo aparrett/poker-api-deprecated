@@ -1,6 +1,6 @@
 # poker-api
 
-An app where you can play Texas Hold'em poker with your friends. Click [here](https://poker-friends.herokuapp.com/) to play.
+Texas Hold'em poker! Click [here](https://poker-friends.herokuapp.com/) to play.
 
 ## Tech Stack
 
